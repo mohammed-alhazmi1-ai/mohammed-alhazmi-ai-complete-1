@@ -1,0 +1,8 @@
+{
+  "project":"Mohammed Alhazmi AI",
+  "language":"ar",
+  "framework":"Next.js",
+  "database":"Supabase",
+  "orm":"Prisma",
+  "builderVersion":"1.0.0"
+}

@@ -1,0 +1,274 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                  String         @id @default(uuid())
+  firstName           String
+  lastName            String
+  username            String         @unique
+  email               String         @unique
+  passwordHash        String?
+  phoneNumber         String?
+  country             String?
+  city                String?
+  avatarUrl           String?
+  role                String         @default("USER") // USER | ADMIN | OWNER
+  resetPasswordToken  String?
+  resetPasswordExpiry DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  subscription        Subscription?
+  wallet              Wallet?
+  payments          Payment[]
+  transactions        WalletTransaction[]
+  aiJobs              AiJob[]
+  generatedFiles      GeneratedFile[]
+}
+
+model Profile {
+  id        String   @id // matches Supabase auth.users.id
+  userId    String?  @unique
+  firstName String?
+  lastName  String?
+  username  String?  @unique
+  phone     String?
+  country   String?
+  city      String?
+  avatarUrl String?
+  updatedAt DateTime @updatedAt
+}
+
+model Plan {
+  id             String   @id @default(uuid())
+  name           String   // Free, Gift, Pro, Business, VIP
+  price          Float    @default(0)
+  monthlyCredits Int      @default(100)
+  requestLimit   Int      @default(50)
+  allowImage     Boolean  @default(true)
+  allowVideo     Boolean  @default(false)
+  allowAudio     Boolean  @default(true)
+  allowChat      Boolean  @default(true)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+}
+
+model Subscription {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId       String?
+  planType     String   @default("Free")
+  monthlyLimit Int      @default(50)
+  chatLimit    Int?     @default(30)
+  codeLimit    Int?     @default(15)
+  chatUsed     Int      @default(0)
+  codeUsed     Int      @default(0)
+  periodStart  DateTime @default(now())
+  status       String   @default("active") // active | expired | cancelled
+  validUntil   DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Wallet {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  freeCredits    Int      @default(100)
+  paidCredits    Int      @default(0)
+  referralCredits Int     @default(0)
+  updatedAt      DateTime @updatedAt
+}
+
+model WalletTransaction {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // credit | debit | purchase | gift | referral | refund
+  amount      Int
+  balanceAfter Int
+  description String?
+  reference   String?
+  createdAt   DateTime @default(now())
+}
+
+model WithdrawRequest {
+  id          String   @id @default(uuid())
+  userId      String
+  amount      Float
+  method      String   // bank | paypal | crypto
+  status      String   @default("pending") // pending | approved | rejected
+  details     String?
+  createdAt   DateTime @default(now())
+  processedAt DateTime?
+}
+
+model AiProvider {
+  id            String        @id @default(uuid())
+  slug          String        @unique // openai, gemini, claude, stability, replicate
+  name          String
+  category      String        // text | image | video | audio | chat | other
+  isEnabled     Boolean       @default(false)
+  baseUrl       String?
+  priority      Int           @default(100) // أقل رقم = أولوية أعلى في الـ Fallback
+  defaultModel  String?
+  dailyLimit    Int?
+  costPerUse    Float         @default(0) // تكلفة بالـ Credit لكل طلب
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  keys          ProviderKey[]
+  models        AiModel[]
+  usageLogs     AiUsageLog[]
+}
+
+model ProviderKey {
+  id         String     @id @default(uuid())
+  providerId String
+  provider   AiProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  keyName    String     // e.g. GEMINI_API_KEY, OPENAI_API_KEY
+  keyValue   String     @default("") // في الإنتاج: تشفير
+  isActive   Boolean    @default(true)
+  lastTestAt DateTime?
+  lastTestOk Boolean?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model AiModel {
+  id           String     @id @default(uuid())
+  providerId   String
+  provider     AiProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  modelId      String     // gemini-1.5-flash, gpt-4o, ...
+  displayName  String
+  category     String     // text | image | video | audio
+  isDefault    Boolean    @default(false)
+  isEnabled    Boolean    @default(true)
+  costPerUse   Float      @default(0)
+  maxTokens    Int?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([providerId, modelId])
+}
+
+model AiUsageLog {
+  id           String      @id @default(uuid())
+  providerId   String?
+  provider     AiProvider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  userId       String?
+  model        String?
+  category     String?     // text | image | ...
+  success      Boolean     @default(true)
+  creditsUsed  Int         @default(0)
+  latencyMs    Int?
+  errorMsg     String?
+  promptPreview String?
+  createdAt    DateTime    @default(now())
+}
+
+model ApiRequest {
+  id         String   @id @default(uuid())
+  userId     String?
+  path       String
+  method     String   @default("POST")
+  statusCode Int?
+  provider   String?
+  model      String?
+  durationMs Int?
+  meta       String?  // JSON
+  createdAt  DateTime @default(now())
+}
+
+model ServiceCost {
+  id          String   @id @default(uuid())
+  serviceKey  String   @unique // text_generate | image_generate | video_generate | ...
+  displayName String
+  creditsCost Int      @default(5)
+  isActive    Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+}
+
+model AiJob {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider    String
+  model       String?
+  type        String   // text | image | video | audio | chat
+  prompt      String
+  result      String?
+  resultUrl   String?
+  status      String   @default("pending") // pending | processing | completed | failed
+  creditsUsed Int      @default(0)
+  errorMsg    String?
+  createdAt   DateTime @default(now())
+  finishedAt  DateTime?
+}
+
+model GeneratedFile {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId     String?
+  type      String   // image | video | audio | document
+  url       String
+  fileName  String?
+  size      Int?
+  createdAt DateTime @default(now())
+}
+
+model GiftCode {
+  id            String    @id @default(uuid())
+  code          String    @unique
+  planType      String    @default("Gift")
+  creditsReward Int       @default(0)
+  durationDays  Int       @default(30)
+  usedCount     Int       @default(0)
+  maxUses       Int       @default(1)
+  expiresAt     DateTime?
+  createdAt     DateTime  @default(now())
+}
+
+model SystemLog {
+  id        String   @id @default(uuid())
+  level     String   // info | warn | error
+  message   String
+  source    String?
+  userId    String?
+  meta      String?  // JSON
+  createdAt DateTime @default(now())
+}
+
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider    String   @default("manual")
+  amount      Float    @default(0)
+  currency    String   @default("USD")
+  credits     Int      @default(0)
+  planId      String?
+  status      String   @default("pending")
+  externalId  String?
+  description String?
+  metadata    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
