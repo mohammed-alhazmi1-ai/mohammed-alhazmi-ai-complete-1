@@ -31,3 +31,17 @@ export const supabase = getSupabase();
 export const supabaseConfigError = isSupabaseConfigured
   ? null
   : 'إعدادات Supabase غير مكتملة. أضف NEXT_PUBLIC_SUPABASE_URL و NEXT_PUBLIC_SUPABASE_ANON_KEY في .env ثم أعد تشغيل npm run dev';
+
+/** عميل السيرفر بمفتاح service role */
+export function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  if (!url || !key) return null
+  const { createClient } = require('@supabase/supabase-js')
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+}
+
+export const supabaseAdmin =
+  typeof window === 'undefined' ? getSupabaseAdmin() : null
