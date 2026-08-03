@@ -8,7 +8,10 @@ import {
   type PayMethod,
   type RemoPack,
   type Plan,
+  JEEB_DEPOSIT_NUMBER,
+  JEEB_WHATSAPP,
 } from '@/lib/plans-and-payments'
+// jeeb constants imported below
 
 export default function BillingPage() {
   const [tab, setTab] = useState<'plans' | 'packs'>('packs')
@@ -186,7 +189,48 @@ export default function BillingPage() {
         </div>
       )}
 
-      <label className="block text-sm mb-1">رقم العملية / المرجع (اختياري)</label>
+      <label className="block text-sm mb-1">
+      {methodId === 'jeeb' && (
+        <div className="rounded-2xl border-2 border-green-600/40 bg-green-50 dark:bg-green-950/30 p-4 mb-4 text-sm space-y-3">
+          <div className="font-bold text-green-800 dark:text-green-300 text-base">
+            الدفع عبر محفظة جيب — إيداع نقدي
+          </div>
+          <div className="space-y-1">
+            <div>
+              رقم الإيداع:{' '}
+              <b className="text-lg tracking-wider" dir="ltr">
+                {JEEB_DEPOSIT_NUMBER}
+              </b>
+            </div>
+            <p className="text-gray-700 dark:text-gray-200">
+              1) أودع أو حوّل المبلغ المطلوب إلى الرقم أعلاه عبر محفظة جيب.
+              <br />
+              2) أرسل <b>إشعار الإيداع</b> عبر واتساب إلى نفس الرقم.
+              <br />
+              3) اذكر في الرسالة: بريد حسابك أو رقم الطلب بعد إنشائه.
+              <br />
+              4) بعد التحقق يُضاف رصيد <b>REMO</b> إلى محفظتك.
+            </p>
+          </div>
+          <a
+            href={`https://wa.me/\( {JEEB_WHATSAPP}?text= \){encodeURIComponent(
+              'السلام عليكم، تم إيداع مبلغ لشحن REMO في منصة محمد الحازمي AI.%0Aرقم الإيداع: ' +
+                JEEB_DEPOSIT_NUMBER +
+                '%0Aأرفق إشعار الإيداع.'
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full rounded-xl bg-green-600 text-white py-3 font-medium"
+          >
+            📤 إرسال إشعار الإيداع عبر واتساب
+          </a>
+          <p className="text-xs text-gray-500">
+            بعد إنشاء طلب الشراء من الزر بالأسفل، أرسل الإشعار مع رقم الطلب إن ظهر لك.
+          </p>
+        </div>
+      )}
+
+      رقم العملية / المرجع (اختياري)</label>
       <input
         value={txRef}
         onChange={(e) => setTxRef(e.target.value)}
@@ -210,6 +254,27 @@ export default function BillingPage() {
           }`}
         >
           {msg}
+          
+          {last?.ok && methodId === 'jeeb' && (
+            <a
+              className="mt-2 inline-flex items-center justify-center w-full rounded-xl bg-green-600 text-white py-2 text-sm"
+              target="_blank"
+              rel="noopener noreferrer"
+              href={`https://wa.me/\( {JEEB_WHATSAPP}?text= \){encodeURIComponent(
+                'تم إنشاء طلب شحن REMO%0Aرقم الطلب: ' +
+                  (last?.paymentId || '') +
+                  '%0Aالمبلغ: ' +
+                  (last?.amount || '') +
+                  ' ' +
+                  (last?.currency || '') +
+                  '%0Aأرفق إشعار الإيداع لرقم ' +
+                  JEEB_DEPOSIT_NUMBER
+              )}`}
+            >
+              إرسال إشعار الإيداع على واتساب مع رقم الطلب
+            </a>
+          )}
+
           {last?.ok && last?.credits ? (
             <div className="mt-1">سيتم شحن {last.credits} REMO بعد التأكيد.</div>
           ) : null}

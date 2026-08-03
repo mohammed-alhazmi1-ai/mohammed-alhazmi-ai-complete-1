@@ -133,10 +133,16 @@ export const PAY_METHODS: PayMethod[] = [
     currency: 'YER',
     enabled: true,
     instructions:
-      'حوّل المبلغ إلى رقم محفظة جيب الظاهر، ثم أدخل رقم العملية واضغط «أرسل للتأكيد». المالك يعتمد الطلب ويُشحن REMO.',
-    addressOrAccount: process.env.NEXT_PUBLIC_JEEB_NUMBER || 'يُضاف من إعدادات المالك',
+      '1) أودع المبلغ نقداً / حوّل عبر محفظة جيب إلى الرقم: 777096733
+' +
+      '2) احتفظ بإشعار الإيداع
+' +
+      '3) أرسل الإشعار عبر واتساب إلى نفس الرقم مع رقم طلبك
+' +
+      '4) بعد التحقق يُضاف رصيد REMO إلى حسابك',
+    addressOrAccount: process.env.NEXT_PUBLIC_JEEB_NUMBER || '777096733',
     icon: '📱',
-  },
+  },,
   {
     id: 'binance',
     name: 'بينانس (USDT)',
@@ -181,3 +187,7 @@ export const PAY_METHODS: PayMethod[] = [
     icon: '💙',
   },
 ]
+
+/** رقم جيب لاستقبال الإيداع وإشعار واتساب */
+export const JEEB_DEPOSIT_NUMBER = process.env.NEXT_PUBLIC_JEEB_NUMBER || '777096733'
+export const JEEB_WHATSAPP = '967' + JEEB_DEPOSIT_NUMBER.replace(/^0+/, '').replace(/^967/, '')
