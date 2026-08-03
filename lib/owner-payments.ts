@@ -60,10 +60,6 @@ export async function listPendingPayments(limit = 50) {
   }
 }
 
-/**
- * approve: شحن credits إلى paidCredits + حالة completed
- * reject: حالة rejected بدون شحن
- */
 export async function settlePayment(
   paymentId: string,
   action: 'approve' | 'reject',
@@ -101,7 +97,6 @@ export async function settlePayment(
       return { ok: false, error: 'قيمة REMO غير صالحة' }
     }
 
-    // محفظة المستخدم
     let wallet = await prisma.wallet.findUnique({ where: { userId: payment.userId } })
     if (!wallet) {
       wallet = await prisma.wallet.create({
@@ -118,14 +113,13 @@ export async function settlePayment(
       })
     }
 
-    // حركة محفظة
     try {
       await prisma.walletTransaction.create({
         data: {
           userId: payment.userId,
           type: 'credit',
           amount: credits,
-          description: `شحن بعد اعتماد دفع \( {payment.provider} (# \){paymentId.slice(0, 8)})`,
+          description: `شحن بعد اعتماد دفع ${payment.provider} (#${paymentId.slice(0, 8)})`,
         } as any,
       })
     } catch {
@@ -138,7 +132,7 @@ export async function settlePayment(
           } as any,
         })
       } catch {
-        /* شكل الجدول قد يختلف */
+        /* */
       }
     }
 

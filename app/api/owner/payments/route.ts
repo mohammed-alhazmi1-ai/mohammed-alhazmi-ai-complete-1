@@ -17,7 +17,6 @@ function isOwnerEmail(email: string | null) {
 export async function GET(req: NextRequest) {
   try {
     const email = req.headers.get('x-user-email') || req.nextUrl.searchParams.get('email')
-    // حماية خفيفة — الواجهة ترسل بريد المالك؛ يُفضّل لاحقاً ربط جلسة Supabase
     if (email && !isOwnerEmail(email)) {
       return NextResponse.json({ ok: false, error: 'غير مصرح' }, { status: 403 })
     }
