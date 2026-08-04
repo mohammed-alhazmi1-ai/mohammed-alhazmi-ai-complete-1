@@ -1,1 +1,0 @@
-(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[2331],{1058:function(n,e,t){Promise.resolve().then(t.bind(t,4664))},4664:function(n,e,t){"use strict";t.r(e),t.d(e,{default:function(){return c}});var u=t(3827),r=t(9976);function c(){return(0,u.jsx)(r.Z,{service:"chat"})}}},function(n){n.O(0,[9762,5250,8038,718,2971,8069,1744],function(){return n(n.s=1058)}),_N_E=n.O()}]);

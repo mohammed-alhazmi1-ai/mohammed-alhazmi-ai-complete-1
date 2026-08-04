@@ -1,1 +1,0 @@
-{"ok":true,"generateReady":true,"providers":{"gemini":true,"openai":true},"checks":{"GEMINI_API_KEY":"ready","OPENAI_API_KEY":"ready","DATABASE_URL":"ready","SUPABASE":"ready"}}
