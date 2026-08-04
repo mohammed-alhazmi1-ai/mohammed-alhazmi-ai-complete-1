@@ -17,7 +17,7 @@ type Limits = {
 };
 
 export default function UsageBar() {
-  const [credits, setCredits] = useState<number | null>(null);
+  const [credits, setREMOs] = useState<number | null>(null);
   const [plan, setPlan] = useState('Free');
   const [limits, setLimits] = useState<Limits | null>(null);
   const [username, setUsername] = useState('');
@@ -33,7 +33,7 @@ export default function UsageBar() {
           body: JSON.stringify({ email: session.user.email }),
         });
         const data = await res.json();
-        if (typeof data.credits === 'number') setCredits(data.credits);
+        if (typeof data.credits === 'number') setREMOs(data.credits);
         if (data.plan) setPlan(data.plan);
         if (data.limits) setLimits(data.limits);
         if (data.username || data.firstName) setUsername(data.username || data.firstName);
@@ -42,14 +42,14 @@ export default function UsageBar() {
   }, []);
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 flex flex-wrap items-center gap-4 justify-between">
+    <div className="w-full rounded-xl border border-slate-800 bg-slate-900/80 px-2 py-2 flex flex-row flex-wrap items-center gap-2 justify-between text-[11px] sm:text-xs">
       <div className="flex flex-wrap items-center gap-3 text-sm">
         {username && <span className="font-bold text-white">{username}</span>}
         <span className="text-xs px-2 py-1 rounded-lg bg-blue-950/50 border border-blue-900 text-blue-300">
           {plan}
         </span>
         <span className="text-xs px-2 py-1 rounded-lg bg-emerald-950/40 border border-emerald-900 text-emerald-400 font-bold">
-          {credits === null ? '...' : credits} Credit
+          {credits === null ? '...' : credits} REMO
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">

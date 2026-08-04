@@ -226,21 +226,29 @@ export default function DashboardPage() {
   return (<div className="min-h-screen bg-slate-950 text-slate-100" dir="rtl">
       {/* ===== الشريط العلوي: اسم المستخدم + الخطة + الرصيد ===== */}
       <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/95 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-        <div className="px-4 pt-4"><UsageBar />
-      {/* PHASE4_QUICK_LINKS */}
-      <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap gap-2 text-xs">
-        <a href="/dashboard/images" className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700">الصور</a>
-        <a href="/dashboard/video" className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700">الفيديو</a>
-        <a href="/dashboard/music" className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700">الموسيقى</a>
-        <a href="/dashboard/code" className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700">البرمجة</a>
-        <a href="/dashboard/chat" className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700">الدردشة</a>
-        <a href="/dashboard/jobs" className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700">سجل الطلبات</a>
-        <a href="/dashboard/files" className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700">ملفاتي</a>
-        <a href="/dashboard/plans" className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700">الخطط</a>
-        <a href="/dashboard/gift" className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700">كود هدية</a>
+
+      {/* شريط تنقل أفقي */}
+      <div data-nav="main" className="max-w-7xl mx-auto px-2 sm:px-4 py-2 overflow-x-auto">
+        <div className="flex flex-row flex-nowrap items-center gap-2 min-w-max pb-1">
+          <UsageBar />
+        </div>
+        <div className="flex flex-row flex-nowrap items-center gap-1.5 min-w-max text-[11px] sm:text-xs mt-2">
+          <a href="/dashboard/images" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">الصور</a>
+          <a href="/dashboard/video" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">الفيديو</a>
+          <a href="/dashboard/music" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">الموسيقى</a>
+          <a href="/dashboard/code" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">البرمجة</a>
+          <a href="/dashboard/chat" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">الدردشة</a>
+          <a href="/dashboard/bot" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">المساعد</a>
+          <a href="/dashboard/jobs" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">الطلبات</a>
+          <a href="/dashboard/files" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">ملفاتي</a>
+          <a href="/dashboard/plans" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">الخطط</a>
+          <a href="/dashboard/billing" className="px-2.5 py-1.5 rounded-lg bg-emerald-800 hover:bg-emerald-700 whitespace-nowrap">شحن REMO</a>
+          <a href="/dashboard/gift" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">كود هدية</a>
+        </div>
       </div>
-</div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-row flex-wrap items-center justify-between gap-2">
+        
 
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-emerald-500 flex items-center justify-center text-lg shadow-lg shadow-blue-500/20">
