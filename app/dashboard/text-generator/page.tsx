@@ -14,7 +14,7 @@ export default function TextGeneratorPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
-  const [credits, setCredits] = useState<number | null>(null);
+  const [credits, setREMOs] = useState<number | null>(null);
   const [providers, setProviders] = useState<{ slug: string; name: string }[]>([]);
   const [meta, setMeta] = useState('');
 
@@ -33,7 +33,7 @@ export default function TextGeneratorPage() {
           body: JSON.stringify({ email: session.user.email }),
         });
         const data = await res.json();
-        if (typeof data.credits === 'number') setCredits(data.credits);
+        if (typeof data.credits === 'number') setREMOs(data.credits);
       } catch {}
       try {
         const pr = await fetch('/api/providers');
@@ -69,7 +69,7 @@ export default function TextGeneratorPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'فشل التوليد');
       setResult(data.result);
-      if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining);
+      if (typeof data.creditsRemaining === 'number') setREMOs(data.creditsRemaining);
       setMeta(`${data.provider} · ${data.model}${data.usedFallback ? ' · Fallback' : ''}`);
     } catch (e: any) {
       setError(e.message);
@@ -79,21 +79,22 @@ export default function TextGeneratorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white p-6 md:p-10" dir="rtl">
+    <div data-dashboard="user" className="min-h-screen w-full max-w-lg mx-auto px-3 pb-24 sm:px-4">
+<div className="min-h-screen bg-slate-950 text-white p-6 md:p-10" dir="rtl">
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between gap-3">
           <Link href="/dashboard" className="text-sm text-slate-400 hover:text-white">
             ← لوحة التحكم
           </Link>
           {credits !== null && (
-            <span className="text-xs text-emerald-400 font-bold">الرصيد: {credits}</span>
+            <span className="text-xs text-emerald-400 font-bold">الرصيد: {credits} REMO</span>
           )}
         </div>
         <h1 className="text-2xl font-bold">مولد النصوص ✍️</h1>
 
         <div>
           <label className="text-xs text-slate-400 mb-2 block">المزود</label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             {providers.map((p) => (
               <button
                 key={p.slug}
@@ -145,7 +146,7 @@ export default function TextGeneratorPage() {
           disabled={loading}
           className="px-8 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-xl font-bold text-sm"
         >
-          {loading ? 'جاري التوليد...' : 'توليد (5 Credits)'}
+          {loading ? 'جاري التوليد...' : 'توليد (5 REMOs)'}
         </button>
         <div className="rounded-2xl bg-slate-900 border border-slate-800 p-5 min-h-[120px] text-sm whitespace-pre-wrap text-slate-300">
           {meta && <p className="text-[10px] text-slate-500 mb-2 font-mono">{meta}</p>}

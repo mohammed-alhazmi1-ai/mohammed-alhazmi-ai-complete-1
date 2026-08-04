@@ -62,7 +62,8 @@ export default function JobsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white" dir="rtl">
+    <div data-dashboard="user" className="min-h-screen w-full max-w-lg mx-auto px-3 pb-24 sm:px-4">
+<div className="min-h-screen bg-slate-950 text-white" dir="rtl">
       <header className="border-b border-slate-800 bg-slate-900/90 sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -87,7 +88,7 @@ export default function JobsPage() {
             <button
               type="button"
               onClick={() => setOpenId(openId === job.id ? null : job.id)}
-              className="w-full text-right p-4 flex flex-wrap items-center justify-between gap-2 hover:bg-slate-800/40 transition"
+              className="w-full text-right p-4 flex flex-wrap items-center justify-between gap-2 hover:bg-slate-800/40 transition grid grid-cols-2 gap-2 sm:flex sm:flex-wrap"
             >
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${statusColor[job.status] || statusColor.pending}`}>
@@ -97,7 +98,7 @@ export default function JobsPage() {
                 <span className="text-[10px] text-slate-600 font-mono">{job.provider}</span>
               </div>
               <div className="flex items-center gap-3 text-[10px] text-slate-500">
-                {job.creditsUsed > 0 && <span className="text-amber-400">−{job.creditsUsed} Credit</span>}
+                {job.creditsUsed > 0 && <span className="text-amber-400">−{job.creditsUsed} REMO</span>}
                 <span>{new Date(job.createdAt).toLocaleString('ar')}</span>
               </div>
             </button>

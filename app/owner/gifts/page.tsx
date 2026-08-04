@@ -7,7 +7,7 @@ const supabase = getSupabase();
 
 export default function OwnerGiftsPage() {
   const [email, setEmail] = useState('');
-  const [credits, setCredits] = useState(100);
+  const [credits, setREMOs] = useState(100);
   const [planType, setPlanType] = useState('Gift');
   const [codes, setCodes] = useState<any[]>([]);
   const [msg, setMsg] = useState('');
@@ -48,7 +48,8 @@ export default function OwnerGiftsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white p-6" dir="rtl">
+    <div data-dashboard="user" className="min-h-screen w-full max-w-lg mx-auto px-3 pb-24 sm:px-4">
+<div className="min-h-screen bg-slate-950 text-white p-6" dir="rtl">
       <div className="max-w-2xl mx-auto space-y-4">
         <div className="flex items-center gap-3">
           <Link href="/owner" className="text-xs text-slate-400">← لوحة المالك</Link>
@@ -56,7 +57,7 @@ export default function OwnerGiftsPage() {
         </div>
         <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 space-y-3">
           <label className="text-xs text-slate-400">الرصيد المضاف</label>
-          <input type="number" value={credits} onChange={(e) => setCredits(Number(e.target.value))}
+          <input type="number" value={credits} onChange={(e) => setREMOs(Number(e.target.value))}
             className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm" />
           <label className="text-xs text-slate-400">نوع الخطة</label>
           <select value={planType} onChange={(e) => setPlanType(e.target.value)}

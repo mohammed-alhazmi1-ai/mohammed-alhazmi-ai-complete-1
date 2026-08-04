@@ -14,7 +14,7 @@ type Msg = {
 
 export default function BotPage() {
   const [email, setEmail] = useState('');
-  const [credits, setCredits] = useState<number | null>(null);
+  const [credits, setREMOs] = useState<number | null>(null);
   const [providers, setProviders] = useState<{ slug: string; name: string }[]>([]);
   const [provider, setProvider] = useState('');
   const [input, setInput] = useState('');
@@ -42,7 +42,7 @@ export default function BotPage() {
           body: JSON.stringify({ email: session.user.email }),
         });
         const data = await res.json();
-        if (typeof data.credits === 'number') setCredits(data.credits);
+        if (typeof data.credits === 'number') setREMOs(data.credits);
       } catch {}
       try {
         const pr = await fetch('/api/providers');
@@ -97,7 +97,7 @@ export default function BotPage() {
             meta: `${data.provider || ''} · ${data.model || ''}`,
           },
         ]);
-        if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining);
+        if (typeof data.creditsRemaining === 'number') setREMOs(data.creditsRemaining);
       }
     } catch (e: any) {
       setMessages((m) => [...m, { role: 'bot', text: '⚠️ ' + (e.message || 'خطأ') }]);
@@ -107,9 +107,10 @@ export default function BotPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col" dir="rtl">
+    <div data-dashboard="user" className="min-h-screen w-full max-w-lg mx-auto px-3 pb-24 sm:px-4">
+<div className="min-h-screen bg-slate-950 text-white flex flex-col" dir="rtl">
       <header className="border-b border-slate-800 bg-slate-900/90 sticky top-0 z-40">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3 flex-wrap grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <div className="flex items-center gap-3">
             <Link href="/dashboard" className="text-xs text-slate-400 hover:text-white">
               ← لوحة التحكم
@@ -118,7 +119,7 @@ export default function BotPage() {
           </div>
           <div className="flex items-center gap-2">
             {credits !== null && (
-              <span className="text-xs text-emerald-400 font-bold">{credits} Credit</span>
+              <span className="text-xs text-emerald-400 font-bold">{credits} REMO</span>
             )}
             <select
               value={provider}

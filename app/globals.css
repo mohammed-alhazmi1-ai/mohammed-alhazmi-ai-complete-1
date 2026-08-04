@@ -35,3 +35,47 @@ body {
   }
 }
 
+/* ===== لوحة المستخدم - جوال ===== */
+[data-dashboard="user"] {
+  max-width: 32rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-bottom: 6rem;
+}
+@media (max-width: 768px) {
+  [data-dashboard="user"] {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  /* شريط المستخدم */
+  [data-dashboard="user"] .user-chip,
+  [data-dashboard="user"] header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  /* شبكة الخدمات */
+  [data-dashboard="user"] nav,
+  [data-dashboard="user"] .services,
+  [data-dashboard="user"] .menu-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  [data-dashboard="user"] nav a,
+  [data-dashboard="user"] nav button,
+  [data-dashboard="user"] .services a,
+  [data-dashboard="user"] .services button {
+    width: 100%;
+    text-align: center;
+    min-height: 44px;
+    border-radius: 0.75rem;
+    font-size: 0.9rem;
+  }
+  /* إخفاء تكرار شائع إن وُجدت قائمة علوية مزدوجة */
+  [data-dashboard="user"] .duplicate-nav {
+    display: none !important;
+  }
+}
+

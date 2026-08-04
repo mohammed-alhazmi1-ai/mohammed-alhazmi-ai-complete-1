@@ -108,7 +108,7 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState("");
   const [userId, setUserId] = useState("");
   const [currentPlan, setCurrentPlan] = useState("Free");
-  const [credits, setCredits] = useState(100);
+  const [credits, setREMOs] = useState(100);
   const [giftCode, setGiftCode] = useState("");
   const [giftLoading, setGiftLoading] = useState(false);
   const [giftMsg, setGiftMsg] = useState("");
@@ -153,7 +153,7 @@ export default function DashboardPage() {
           }),
         });
         const data = await res.json();
-        if (typeof data.credits === "number") setCredits(data.credits);
+        if (typeof data.credits === "number") setREMOs(data.credits);
         if (data.plan) setCurrentPlan(data.plan);
         if (data.recentJobs) setRecentJobs(data.recentJobs);
         if (data.firstName || data.username) {
@@ -198,7 +198,7 @@ export default function DashboardPage() {
           (data.plan ? ` — الخطة: ${data.plan} | +${data.creditsAdded} نقطة` : "")
       );
       if (data.plan) setCurrentPlan(data.plan);
-      if (data.creditsAdded) setCredits((c) => c + Number(data.creditsAdded));
+      if (data.creditsAdded) setREMOs((c) => c + Number(data.creditsAdded));
       setGiftCode("");
     } catch (err: any) {
       setGiftErr(err.message);
@@ -224,10 +224,11 @@ export default function DashboardPage() {
     )?.nameAr || currentPlan;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100" dir="rtl">
+    <div data-dashboard="user" className="min-h-screen w-full max-w-lg mx-auto px-3 pb-24 sm:px-4">
+<div className="min-h-screen bg-slate-950 text-slate-100" dir="rtl">
       {/* ===== الشريط العلوي: اسم المستخدم + الخطة + الرصيد ===== */}
       <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/95 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
         <div className="px-4 pt-4"><UsageBar />
       {/* PHASE4_QUICK_LINKS */}
       <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap gap-2 text-xs">
@@ -264,7 +265,7 @@ export default function DashboardPage() {
             </div>
             <div className="px-3 py-1.5 rounded-xl bg-emerald-950/60 border border-emerald-800/50">
               <span className="text-slate-500">الرصيد: </span>
-              <span className="text-emerald-400 font-bold">{credits} Credit</span>
+              <span className="text-emerald-400 font-bold">{credits} REMO</span>
             </div>
             <LanguageSwitcher />
             <button
@@ -435,7 +436,7 @@ export default function DashboardPage() {
                   <p className="text-green-400 text-sm mt-1">
                     {plan.credits >= 999999
                       ? "رصيد غير محدود"
-                      : `${plan.credits.toLocaleString()} Credit`}
+                      : `${plan.credits.toLocaleString()} REMO`}
                   </p>
                   <p className="text-slate-500 text-xs mt-2">{plan.description}</p>
                   <ul className="mt-3 space-y-1 text-xs text-slate-400 flex-1">

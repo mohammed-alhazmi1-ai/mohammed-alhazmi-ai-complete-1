@@ -37,7 +37,7 @@ export default function ServiceWorkspace({ service }: { service: ServiceKey }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [userEmail, setUserEmail] = useState('');
-  const [creditsLeft, setCreditsLeft] = useState<number | null>(null);
+  const [creditsLeft, setREMOsLeft] = useState<number | null>(null);
   const [providers, setProviders] = useState<ProviderOpt[]>([]);
   const [provider, setProvider] = useState('');
   const [metaInfo, setMetaInfo] = useState('');
@@ -59,7 +59,7 @@ export default function ServiceWorkspace({ service }: { service: ServiceKey }) {
           body: JSON.stringify({ email: session.user.email }),
         });
         const data = await res.json();
-        if (typeof data.credits === 'number') setCreditsLeft(data.credits);
+        if (typeof data.credits === 'number') setREMOsLeft(data.credits);
       } catch {}
       try {
         const pr = await fetch('/api/providers');
@@ -139,7 +139,7 @@ export default function ServiceWorkspace({ service }: { service: ServiceKey }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'فشل التوليد');
       setResult(data.result);
-      if (typeof data.creditsRemaining === 'number') setCreditsLeft(data.creditsRemaining);
+      if (typeof data.creditsRemaining === 'number') setREMOsLeft(data.creditsRemaining);
       if (typeof data.creditsUsed === 'number') setLastCost(data.creditsUsed);
       setMetaInfo(
         [data.provider || provider, data.model, data.usedFallback ? 'Fallback' : null, data.jobId ? `طلب #${String(data.jobId).slice(0, 8)}` : null]
@@ -164,7 +164,7 @@ export default function ServiceWorkspace({ service }: { service: ServiceKey }) {
           </div>
           <div className="flex items-center gap-2">
             <span className={`text-xs font-bold px-3 py-1.5 rounded-lg border ${creditsLeft !== null && creditsLeft < cost ? 'text-red-400 bg-red-950/40 border-red-900/50' : 'text-emerald-400 bg-emerald-950/40 border-emerald-900/50'}`}>
-              {lang === 'ar' ? 'الرصيد:' : 'Balance:'} {creditsLeft === null ? '...' : creditsLeft} Credit
+              {lang === 'ar' ? 'الرصيد:' : 'Balance:'} {creditsLeft === null ? '...' : creditsLeft} REMO
             </span>
             <Link href="/dashboard/jobs" className="text-[10px] text-slate-400 hover:text-white px-2 py-1 rounded-lg border border-slate-800">السجل</Link>
             <LanguageSwitcher />
@@ -176,7 +176,7 @@ export default function ServiceWorkspace({ service }: { service: ServiceKey }) {
         <div className="rounded-2xl border border-amber-900/40 bg-amber-950/20 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm text-amber-200">
             {lang === 'ar' ? 'تكلفة هذا الطلب:' : 'Cost:'}{' '}
-            <strong className="text-amber-400 text-lg">{cost} Credit</strong>
+            <strong className="text-amber-400 text-lg">{cost} REMO</strong>
           </p>
           <p className="text-xs text-slate-400">
             {lang === 'ar' ? 'يُخصم بعد نجاح التوليد ويُحفظ الطلب' : 'Deducted after success; request is saved'}
@@ -224,7 +224,7 @@ export default function ServiceWorkspace({ service }: { service: ServiceKey }) {
           {error && <div className="p-3 rounded-xl bg-red-950/50 border border-red-800 text-red-400 text-xs">{error}</div>}
           <button onClick={handleGenerate} disabled={loading || !provider}
             className="w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold rounded-xl text-sm">
-            {loading ? t('generating') : `✨ \( {t('generate')} (− \){cost} Credit)`}
+            {loading ? t('generating') : `✨ \( {t('generate')} (− \){cost} REMO)`}
           </button>
         </section>
 
@@ -232,7 +232,7 @@ export default function ServiceWorkspace({ service }: { service: ServiceKey }) {
           <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
             <h3 className="text-xs font-bold text-slate-400">{t('result')}</h3>
             <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500">
-              {lastCost !== null && <span className="text-amber-400">−{lastCost} Credit</span>}
+              {lastCost !== null && <span className="text-amber-400">−{lastCost} REMO</span>}
               {metaInfo && <span>{metaInfo}</span>}
             </div>
           </div>

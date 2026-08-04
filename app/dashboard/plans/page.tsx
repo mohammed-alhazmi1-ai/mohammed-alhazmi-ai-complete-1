@@ -5,7 +5,8 @@ import { SUBSCRIPTION_PLANS } from '@/lib/plans-and-payments'
 
 export default function PlansPage() {
   return (
-    <div className="mx-auto max-w-4xl px-3 py-4 sm:px-4" dir="rtl">
+    <div data-dashboard="user" className="min-h-screen w-full max-w-lg mx-auto px-3 pb-24 sm:px-4">
+<div className="mx-auto max-w-4xl px-3 py-4 sm:px-4" dir="rtl">
       <h1 className="text-xl font-bold mb-2">باقات الاشتراك</h1>
       <p className="text-sm text-gray-500 mb-4">خطط متنوعة للأفراد والأعمال — الدفع بوحدة REMO والخدمات</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
