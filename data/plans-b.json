@@ -1,0 +1,84 @@
+{
+  "plans": [
+    {
+      "id": "free",
+      "name": "مجاني",
+      "nameEn": "Free",
+      "priceUsd": 0,
+      "monthlyRemo": 50,
+      "chatLimit": 30,
+      "imageLimit": 3,
+      "videoLimit": 0,
+      "features": [
+        "REMO ترحيبي",
+        "دردشة محدودة"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "starter",
+      "name": "ستارتر",
+      "nameEn": "Starter",
+      "priceUsd": 9,
+      "priceYer": 2250,
+      "monthlyRemo": 300,
+      "chatLimit": 200,
+      "imageLimit": 30,
+      "videoLimit": 5,
+      "features": [
+        "300 REMO",
+        "صور + دردشة"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "pro",
+      "name": "برو",
+      "nameEn": "Pro",
+      "priceUsd": 19,
+      "priceYer": 4750,
+      "monthlyRemo": 800,
+      "chatLimit": null,
+      "imageLimit": 100,
+      "videoLimit": 20,
+      "features": [
+        "800 REMO",
+        "دردشة بلا حدود"
+      ],
+      "popular": true,
+      "badge": "الأكثر طلباً",
+      "enabled": true
+    },
+    {
+      "id": "business",
+      "name": "أعمال",
+      "nameEn": "Business",
+      "priceUsd": 49,
+      "monthlyRemo": 2500,
+      "chatLimit": null,
+      "imageLimit": 400,
+      "videoLimit": 60,
+      "features": [
+        "2500 REMO",
+        "كل الخدمات"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "vip",
+      "name": "VIP",
+      "nameEn": "VIP",
+      "priceUsd": 99,
+      "monthlyRemo": 6000,
+      "chatLimit": null,
+      "imageLimit": null,
+      "videoLimit": null,
+      "features": [
+        "6000 REMO",
+        "بلا حدود تقريباً"
+      ],
+      "badge": "مميز",
+      "enabled": true
+    }
+  ]
+}
