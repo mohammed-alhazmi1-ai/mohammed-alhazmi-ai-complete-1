@@ -1,0 +1,1 @@
+{"ok":true,"endpoints":{"register":"POST /api/auth/register","login":"use /login page"}}

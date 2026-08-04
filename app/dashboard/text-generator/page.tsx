@@ -78,9 +78,7 @@ export default function TextGeneratorPage() {
     }
   };
 
-  return (
-    <div data-dashboard="user" className="min-h-screen w-full max-w-lg mx-auto px-3 pb-24 sm:px-4">
-<div className="min-h-screen bg-slate-950 text-white p-6 md:p-10" dir="rtl">
+  return (<div className="min-h-screen bg-slate-950 text-white p-6 md:p-10" dir="rtl">
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between gap-3">
           <Link href="/dashboard" className="text-sm text-slate-400 hover:text-white">

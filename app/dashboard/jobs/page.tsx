@@ -61,9 +61,7 @@ export default function JobsPage() {
     })();
   }, []);
 
-  return (
-    <div data-dashboard="user" className="min-h-screen w-full max-w-lg mx-auto px-3 pb-24 sm:px-4">
-<div className="min-h-screen bg-slate-950 text-white" dir="rtl">
+  return (<div className="min-h-screen bg-slate-950 text-white" dir="rtl">
       <header className="border-b border-slate-800 bg-slate-900/90 sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">

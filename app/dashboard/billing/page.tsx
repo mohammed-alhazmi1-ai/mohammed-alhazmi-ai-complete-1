@@ -52,9 +52,7 @@ export default function BillingPage() {
     }
   }
 
-  return (
-    <div data-dashboard="user" className="min-h-screen w-full max-w-lg mx-auto px-3 pb-24 sm:px-4">
-<div className="mx-auto max-w-3xl px-3 py-4 sm:px-4 pb-16" dir="rtl">
+  return (<div className="mx-auto max-w-3xl px-3 py-4 sm:px-4 pb-16" dir="rtl">
       <h1 className="text-xl font-bold mb-1">شراء الباقات وشحن REMO</h1>
       <p className="text-sm text-gray-500 mb-4">
         اختر الباقة وطريقة الدفع. التحويل عبر جيب / بينانس / عملات يُعتمد من المالك.

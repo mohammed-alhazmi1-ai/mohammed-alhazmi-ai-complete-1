@@ -29,9 +29,7 @@ export default function OwnerUsersPage() {
     })();
   }, []);
 
-  return (
-    <div data-dashboard="user" className="min-h-screen w-full max-w-lg mx-auto px-3 pb-24 sm:px-4">
-<div className="min-h-screen bg-slate-950 text-white p-6" dir="rtl">
+  return (<div className="min-h-screen bg-slate-950 text-white p-6" dir="rtl">
       <div className="max-w-4xl mx-auto space-y-4">
         <div className="flex items-center gap-3">
           <Link href="/owner" className="text-xs text-slate-400">← لوحة المالك</Link>
