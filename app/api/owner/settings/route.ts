@@ -1,27 +1,31 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { isOwnerEmail } from '@/lib/credits';
-import { getPlatformSettings, savePlatformSettings } from '@/lib/platform-settings';
+import { NextRequest, NextResponse } from 'next/server'
+import { getSettingsA, saveSettingsA } from '@/lib/platform-settings-a'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const settings = await getPlatformSettings();
-    return NextResponse.json({ settings });
+    const settings = await getSettingsA()
+    return NextResponse.json({ ok: true, settings })
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: e?.message || 'خطأ' }, { status: 500 })
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const email = (body.email || '').toLowerCase();
-    if (!email || !(await isOwnerEmail(email))) {
-      return NextResponse.json({ error: 'غير مصرح' }, { status: 403 });
-    }
-    const { email: _e, ...rest } = body;
-    const settings = await savePlatformSettings(rest);
-    return NextResponse.json({ success: true, settings });
+    const body = await req.json().catch(() => ({}))
+    const settings = await saveSettingsA({
+      freeSignupRemo:
+        typeof body.freeSignupRemo === 'number'
+          ? body.freeSignupRemo
+          : undefined,
+      siteName: typeof body.siteName === 'string' ? body.siteName : undefined,
+      siteTagline:
+        typeof body.siteTagline === 'string' ? body.siteTagline : undefined,
+    })
+    return NextResponse.json({ ok: true, settings })
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'فشل الحفظ' }, { status: 500 });
+    return NextResponse.json({ ok: false, error: e?.message || 'خطأ' }, { status: 500 })
   }
 }
