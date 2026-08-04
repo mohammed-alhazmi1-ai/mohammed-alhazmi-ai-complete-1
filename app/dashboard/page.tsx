@@ -108,7 +108,7 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState("");
   const [userId, setUserId] = useState("");
   const [currentPlan, setCurrentPlan] = useState("Free");
-  const [credits, setREMOs] = useState(100);
+  const [credits, setcredits] = useState(100);
   const [giftCode, setGiftCode] = useState("");
   const [giftLoading, setGiftLoading] = useState(false);
   const [giftMsg, setGiftMsg] = useState("");
@@ -153,7 +153,7 @@ export default function DashboardPage() {
           }),
         });
         const data = await res.json();
-        if (typeof data.credits === "number") setREMOs(data.credits);
+        if (typeof data.credits === "number") setcredits(data.credits);
         if (data.plan) setCurrentPlan(data.plan);
         if (data.recentJobs) setRecentJobs(data.recentJobs);
         if (data.firstName || data.username) {
@@ -198,7 +198,7 @@ export default function DashboardPage() {
           (data.plan ? ` — الخطة: ${data.plan} | +${data.creditsAdded} نقطة` : "")
       );
       if (data.plan) setCurrentPlan(data.plan);
-      if (data.creditsAdded) setREMOs((c) => c + Number(data.creditsAdded));
+      if (data.creditsAdded) setcredits((c) => c + Number(data.creditsAdded));
       setGiftCode("");
     } catch (err: any) {
       setGiftErr(err.message);
