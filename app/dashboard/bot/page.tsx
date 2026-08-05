@@ -1,5 +1,7 @@
 'use client'
 
+import FileActions from '@/components/dashboard/FileActions'
+
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
@@ -36,6 +38,8 @@ export default function PlatformBotPage() {
   const [messages, setMessages] = useState<Msg[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [attachName, setAttachName] = useState('')
+  const [attachData, setAttachData] = useState('')
   const [name, setName] = useState('مساعد المنصة')
   const endRef = useRef<HTMLDivElement>(null)
 
@@ -57,7 +61,8 @@ export default function PlatformBotPage() {
   }, [messages, loading])
 
   async function send() {
-    const text = input.trim()
+    let text = input.trim()
+    if (attachName) text = text ? `${text}\n\n[مرفق: ${attachName}]` : `تحليل المرفق: ${attachName}`
     if (!text || loading) return
     setInput('')
     const history = [...messages, { role: 'user' as const, content: text }]
@@ -131,6 +136,21 @@ export default function PlatformBotPage() {
       </div>
 
       <div className="border-t border-slate-200 p-3">
+        <div className="max-w-2xl mx-auto mb-2">
+          <FileActions
+            accept="image/*,.txt,.md,.pdf"
+            resultText={messages.filter((m) => m.role === 'assistant').map((m) => m.content).join('\n\n---\n\n')}
+            resultUrl={messages.map((m) => m.imageUrl).filter(Boolean).pop() as string | undefined}
+            onUpload={({ name, dataUrl }) => {
+              setAttachName(name)
+              setAttachData(dataUrl)
+              setInput((v) => v || `لدي ملف: ${name} — `)
+            }}
+            labelUpload="رفع ملف"
+            labelDownload="تحميل المحادثة"
+          />
+          {attachName ? <p className="text-[10px] text-slate-500 mt-1">مرفق: {attachName}</p> : null}
+        </div>
         <div className="max-w-2xl mx-auto flex gap-2">
           <input
             className="flex-1 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500"

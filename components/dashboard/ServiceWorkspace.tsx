@@ -1,4 +1,5 @@
 'use client';
+import FileActions from '@/components/dashboard/FileActions';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
@@ -43,6 +44,9 @@ export default function ServiceWorkspace({ service }: { service: ServiceKey }) {
   const [metaInfo, setMetaInfo] = useState('');
   const [lastCost, setLastCost] = useState<number | null>(null);
   const [cost, setCost] = useState(meta.defaultCost);
+  const [attachedName, setAttachedName] = useState('');
+  const [attachedDataUrl, setAttachedDataUrl] = useState('');
+  const [resultUrl, setResultUrl] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -82,6 +86,7 @@ export default function ServiceWorkspace({ service }: { service: ServiceKey }) {
     setSelected(tpl);
     setPrompt(lang === 'ar' ? tpl.promptAr : tpl.promptEn);
     setResult('');
+    setResultUrl(null);
     setError('');
     setMetaInfo('');
     setLastCost(null);
@@ -126,7 +131,9 @@ export default function ServiceWorkspace({ service }: { service: ServiceKey }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: buildPromptForService(prompt),
+          prompt: buildPromptForService(prompt) + (attachedName ? `\n\n[مرفق: ${attachedName}]` : ''),
+          attachment: attachedDataUrl || undefined,
+          attachmentName: attachedName || undefined,
           type: service,
           service: service,
           serviceType: service,
@@ -145,6 +152,7 @@ export default function ServiceWorkspace({ service }: { service: ServiceKey }) {
         out = (out ? out + '\n\n' : '') + '🖼️ صورة:\n' + data.imageUrl;
       }
       if (!out && data.error) out = data.error;
+      setResultUrl(data.imageUrl || null);
       setResult(out || (lang === 'ar' ? 'اكتمل بدون نص.' : 'Done (empty text).'));
       if (typeof data.creditsLeft === 'number') setREMOsLeft(data.creditsLeft);
       else if (typeof data.creditsRemaining === 'number') setREMOsLeft(data.creditsRemaining);
@@ -252,6 +260,11 @@ export default function ServiceWorkspace({ service }: { service: ServiceKey }) {
           </div>
           <div className="min-h-[140px] p-4 bg-slate-950 border border-slate-800 rounded-2xl text-slate-300 text-sm whitespace-pre-wrap leading-relaxed">
             {result || (lang === 'ar' ? 'ستظهر النتيجة هنا بعد التوليد...' : 'Result will appear here...')}
+          </div>
+          <div className="mt-3">
+            <FileActions resultText={result} resultUrl={resultUrl} />
+          </div>
+          <div className="hidden">
           </div>
         </section>
       </div>
