@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
-    "@huggingface/inference": "^4.13.24",
+    "@huggingface/inference": "^4.13.25",
     "@prisma/client": "^5.10.0",
     "@supabase/supabase-js": "^2.110.8",
     "bcrypt": "^5.1.1",
