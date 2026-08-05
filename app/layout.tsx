@@ -11,7 +11,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className="bg-slate-950 text-slate-100 min-h-screen">
         <LanguageProvider>{children}</LanguageProvider>
-      </body>
+                <CustomScripts />
+        </body>
     </html>
   );
 }
