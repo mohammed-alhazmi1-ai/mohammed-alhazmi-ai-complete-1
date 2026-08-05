@@ -1,4 +1,5 @@
 'use client'
+import AnimatedPlatformName from '@/components/site/AnimatedPlatformName'
 import SocialButtons from '@/components/site/SocialButtons'
 import SiteLogo from '@/components/site/SiteLogo'
 import HomeAdSense from '@/components/site/HomeAdSense';
@@ -125,7 +126,8 @@ export default function Home() {
 
   return (
     <>
-    <div className="absolute top-4 right-4 z-20 px-4"><SiteLogo /></div>
+    <div className="absolute top-4 right-4 z-20 px-4"><div className="py-6 px-4"><AnimatedPlatformName size="xl" /></div>
+        <SiteLogo /></div>
     
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-blue-500 selection:text-white" dir="rtl">
       {/* ===== الشريط العلوي ===== */}

@@ -79,3 +79,40 @@ body {
   }
 }
 
+
+/* —— اسم المنصة + العلم اليمني —— */
+.yemen-flag-bar {
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  max-width: 28rem;
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: 0 0 20px rgba(206, 17, 38, 0.25);
+}
+.yemen-flag-track {
+  display: flex;
+  width: 200%;
+  height: 100%;
+  animation: yemen-flag-scroll 6s linear infinite;
+}
+.yemen-flag-track .yf-red { background: #ce1126; width: 33.333%; }
+.yemen-flag-track .yf-white { background: #fff; width: 33.333%; }
+.yemen-flag-track .yf-black { background: #000; width: 33.333%; }
+@keyframes yemen-flag-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.yemen-title-gradient {
+  background: linear-gradient(90deg, #ce1126, #fff 40%, #ccc 50%, #fff 60%, #111);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: yemen-text-flow 5s ease-in-out infinite;
+  filter: drop-shadow(0 2px 12px rgba(206, 17, 38, 0.35));
+}
+@keyframes yemen-text-flow {
+  0%, 100% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+}
