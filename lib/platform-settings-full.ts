@@ -9,6 +9,16 @@ export type ServiceToggle = {
   order: number
 }
 
+
+export type SocialLink = {
+  id: string
+  label: string
+  href: string
+  icon: string
+  enabled: boolean
+  order: number
+}
+
 export type NavButton = {
   id: string
   label: string
@@ -28,6 +38,7 @@ export type PlatformFullSettings = {
   maintenanceMessage: string
   services: ServiceToggle[]
   navButtons: NavButton[]
+  socialLinks: SocialLink[]
   customHeadHtml: string
   customBodyHtml: string
   blogEnabled: boolean
@@ -64,6 +75,18 @@ const DEFAULT_SERVICES: ServiceToggle[] = [
   { id: 'bot', name: 'المساعد الذكي', href: '/dashboard/bot', enabled: true, order: 6 },
 ]
 
+
+const DEFAULT_SOCIAL: SocialLink[] = [
+  { id: 'whatsapp', label: 'واتساب', href: 'https://wa.me/967777096733', icon: 'whatsapp', enabled: true, order: 1 },
+  { id: 'telegram', label: 'تيليجرام', href: '', icon: 'telegram', enabled: false, order: 2 },
+  { id: 'twitter', label: 'X / تويتر', href: '', icon: 'twitter', enabled: false, order: 3 },
+  { id: 'instagram', label: 'إنستغرام', href: '', icon: 'instagram', enabled: false, order: 4 },
+  { id: 'youtube', label: 'يوتيوب', href: '', icon: 'youtube', enabled: false, order: 5 },
+  { id: 'facebook', label: 'فيسبوك', href: '', icon: 'facebook', enabled: false, order: 6 },
+  { id: 'tiktok', label: 'تيك توك', href: '', icon: 'tiktok', enabled: false, order: 7 },
+  { id: 'snapchat', label: 'سناب شات', href: '', icon: 'snapchat', enabled: false, order: 8 },
+]
+
 const DEFAULT_NAV: NavButton[] = [
   { id: 'start', label: 'ابدأ الآن', href: '/register', enabled: true, order: 1 },
   { id: 'login', label: 'تسجيل الدخول', href: '/login', enabled: true, order: 2 },
@@ -83,6 +106,7 @@ export const DEFAULT_FULL: PlatformFullSettings = {
   maintenanceMessage: 'المنصة تحت الصيانة مؤقتاً. نعود قريباً.',
   services: DEFAULT_SERVICES,
   navButtons: DEFAULT_NAV,
+  socialLinks: DEFAULT_SOCIAL,
   customHeadHtml: '',
   customBodyHtml: '',
   blogEnabled: false,
@@ -119,6 +143,10 @@ export async function getFullSettings(): Promise<PlatformFullSettings> {
         Array.isArray(data.services) && data.services.length
           ? data.services
           : DEFAULT_SERVICES,
+      socialLinks:
+        Array.isArray(data.socialLinks) && data.socialLinks.length
+          ? data.socialLinks
+          : DEFAULT_SOCIAL,
       navButtons:
         Array.isArray(data.navButtons) && data.navButtons.length
           ? data.navButtons
@@ -129,6 +157,7 @@ export async function getFullSettings(): Promise<PlatformFullSettings> {
       ...DEFAULT_FULL,
       services: [...DEFAULT_SERVICES],
       navButtons: [...DEFAULT_NAV],
+      socialLinks: [...DEFAULT_SOCIAL],
     }
   }
 }
@@ -146,6 +175,7 @@ export async function saveFullSettings(
     ),
     services: patch.services ?? cur.services,
     navButtons: patch.navButtons ?? cur.navButtons,
+    socialLinks: patch.socialLinks ?? cur.socialLinks,
     updatedAt: new Date().toISOString(),
   }
   await fs.mkdir(path.dirname(FILE), { recursive: true })

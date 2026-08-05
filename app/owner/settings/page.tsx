@@ -42,6 +42,22 @@ export default function OwnerSettingsHub() {
         </Link>
       </div>
 
+      
+        <Link
+          href="/owner/settings/social"
+          className="block rounded-2xl border border-slate-700 bg-slate-900/80 p-5 hover:border-blue-500 transition"
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">📱</span>
+            <div>
+              <h2 className="font-bold text-white text-base">وسائل التواصل</h2>
+              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                واتساب · تيليجرام · إنستغرام · يوتيوب · روابط تظهر في الرئيسية ولوحة المستخدم
+              </p>
+            </div>
+          </div>
+        </Link>
+
       <Link href="/owner" className="block text-center text-sm text-slate-500 mt-10">
         ← رجوع للوحة المالك
       </Link>

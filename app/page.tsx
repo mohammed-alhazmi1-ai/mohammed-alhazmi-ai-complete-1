@@ -1,4 +1,5 @@
 'use client'
+import SocialButtons from '@/components/site/SocialButtons'
 import SiteLogo from '@/components/site/SiteLogo'
 import HomeAdSense from '@/components/site/HomeAdSense';
 import { useEffect, useState } from 'react';
@@ -154,7 +155,8 @@ export default function Home() {
       </nav>
 
       {/* ===== البطل (Hero) بخلفية احترافية ===== */}
-      <section className="relative min-h-[90vh] flex items-center pt-24 pb-16 overflow-hidden">
+      <div className="py-10 px-4"><SocialButtons variant="landing" /></div>
+<section className="relative min-h-[90vh] flex items-center pt-24 pb-16 overflow-hidden">
         {/* خلفية متدرجة + دوائر ضوئية */}
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900" />
         <div className="absolute top-20 right-1/4 w-[500px] h-[500px] bg-blue-600/15 rounded-full blur-[120px] pointer-events-none" />

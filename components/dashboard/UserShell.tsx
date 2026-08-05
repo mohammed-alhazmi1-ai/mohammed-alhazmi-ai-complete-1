@@ -1,4 +1,5 @@
 'use client'
+import SocialButtons from '@/components/site/SocialButtons'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -163,7 +164,8 @@ export default function UserShell({ children }: { children: React.ReactNode }) {
               )
             })}
           </nav>
-        </aside>
+        <div className="mt-auto p-3 border-t border-slate-800"><SocialButtons variant="dashboard" /></div>
+      </aside>
 
         {/* المحتوى */}
         <main className="flex-1 min-w-0 px-3 sm:px-6 py-6 max-w-6xl mx-auto w-full">
