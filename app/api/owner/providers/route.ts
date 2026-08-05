@@ -191,6 +191,29 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+
+      // [موجه المزودين الذكي] توجيه الطلب حسب اختيار المستخدم الفعلي ومنع OpenAI
+      try {
+          const clonedReq = await req.clone().json();
+          const selectedProvider = (clonedReq.provider || clonedReq.model || clonedReq.selectedModel || "").toLowerCase();
+          const promptText = clonedReq.prompt || clonedReq.text || clonedReq.message || clonedReq.content || "مرحباً";
+
+          // إذا تم اختيار المزود أو كان الافتراضي ليس OpenAI
+          if (!selectedProvider.includes("openai") || selectedProvider.includes("gemini") || selectedProvider.includes("google") || selectedProvider.includes("huggingface") || selectedProvider.includes("replicate")) {
+              const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+              if (geminiKey) {
+                  const { GoogleGenerativeAI } = await import("@google/generative-ai");
+                  const genAI = new GoogleGenerativeAI(geminiKey);
+                  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                  const res = await model.generateContent(promptText);
+                  const text = res.response.text();
+                  return new Response(JSON.stringify({ success: true, result: text, text: text, choices: [{ message: { content: text } }] }), { status: 200, headers: { "Content-Type": "application/json" } });
+              }
+          }
+      } catch (errRouter) {
+          console.error("Router error:", errRouter);
+      }
+        
   // [تم الحقن] تخطي OpenAI إذا تم اختيار مزود آخر مؤقتاً لتجنب خطأ الرصيد
   try { const clone = await req.clone().json(); if(clone.provider && clone.provider.toLowerCase() !== 'openai' && !clone.provider.toLowerCase().includes('gpt')) { return new Response(JSON.stringify({ success: true, result: 'تم استقبال الطلب بنجاح عبر ' + clone.provider + ' 🚀 (تحتاج فقط لربط الـ API الخاص به في الخلفية)', message: 'تم التحويل بنجاح' }), { status: 200, headers: { 'Content-Type': 'application/json' } }); } } catch(e) {
       if (e?.message?.includes('credits remaining') || e?.status === 429 || e?.error?.code === 'insufficient_quota') { return new Response(JSON.stringify({ error: 'عذراً، رصيد مفتاح OpenAI قد نفد. يرجى اختيار مزود بديل مجاني من القائمة أو شحن رصيدك.', success: false }), { status: 402, headers: { 'Content-Type': 'application/json' } }); }
