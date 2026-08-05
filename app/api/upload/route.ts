@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
         malware_suspect: 'malware_suspect',
       }
       await logSecurityEvent({
-        type: typeMap[guard.code] || 'blocked_upload',
+        type: typeMap[(guard as any).code] || 'blocked_upload',
         severity: guard.severity,
         message: `رفع مرفوض: ${guard.message} — الملف: ${file.name}`,
         ip,
