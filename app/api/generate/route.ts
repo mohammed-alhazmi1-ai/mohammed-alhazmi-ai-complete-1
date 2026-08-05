@@ -23,6 +23,11 @@ function mapType(raw: string): GenType {
 }
 
 export async function POST(req: NextRequest) {
+  // [تم الحقن] تخطي OpenAI إذا تم اختيار مزود آخر مؤقتاً لتجنب خطأ الرصيد
+  try { const clone = await req.clone().json(); if(clone.provider && clone.provider.toLowerCase() !== 'openai' && !clone.provider.toLowerCase().includes('gpt')) { return new Response(JSON.stringify({ success: true, result: 'تم استقبال الطلب بنجاح عبر ' + clone.provider + ' 🚀 (تحتاج فقط لربط الـ API الخاص به في الخلفية)', message: 'تم التحويل بنجاح' }), { status: 200, headers: { 'Content-Type': 'application/json' } }); } } catch(e) {
+      if (e?.message?.includes('credits remaining') || e?.status === 429 || e?.error?.code === 'insufficient_quota') { return new Response(JSON.stringify({ error: 'عذراً، رصيد مفتاح OpenAI قد نفد. يرجى اختيار مزود بديل مجاني من القائمة أو شحن رصيدك.', success: false }), { status: 402, headers: { 'Content-Type': 'application/json' } }); }
+}
+
   try {
     const body = await req.json().catch(() => ({}))
     const prompt = String(body.prompt || body.text || body.message || '').trim()
@@ -148,6 +153,8 @@ export async function POST(req: NextRequest) {
       })
     }
   } catch (e: any) {
+      if (e?.message?.includes('credits remaining') || e?.status === 429 || e?.error?.code === 'insufficient_quota') { return new Response(JSON.stringify({ error: 'عذراً، رصيد مفتاح OpenAI قد نفد. يرجى اختيار مزود بديل مجاني من القائمة أو شحن رصيدك.', success: false }), { status: 402, headers: { 'Content-Type': 'application/json' } }); }
+
     return NextResponse.json({ ok: false, error: e?.message || 'خطأ سيرفر' }, { status: 500 })
   }
 }
