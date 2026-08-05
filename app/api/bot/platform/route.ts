@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { replyOpen, getAssistantConfig } from '@/lib/platform-assistant'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 30
 
 export async function GET() {
   const cfg = await getAssistantConfig()
@@ -11,6 +12,7 @@ export async function GET() {
     welcome: cfg.welcome,
     enabled: cfg.enabled,
     unlimited: true,
+    useSmallModel: cfg.useSmallModel,
   })
 }
 
@@ -19,29 +21,23 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}))
     const message = String(body.message || body.prompt || body.text || '').trim()
     const history = Array.isArray(body.history) ? body.history.slice(-12) : []
-
     if (!message) {
       const cfg = await getAssistantConfig()
-      return NextResponse.json({
-        ok: true,
-        text: cfg.welcome,
-        unlimited: true,
-      })
+      return NextResponse.json({ ok: true, text: cfg.welcome, unlimited: true })
     }
-
     const result = await replyOpen(message, history)
     return NextResponse.json({
       ok: true,
       text: result.text,
       links: result.links,
       matchedIds: result.matchedIds,
+      imageUrl: result.imageUrl || null,
+      videoUrl: result.videoUrl || null,
+      engine: result.engine,
       unlimited: true,
       provider: 'platform-assistant',
     })
   } catch (e: any) {
-    return NextResponse.json(
-      { ok: false, error: e?.message || 'خطأ' },
-      { status: 500 }
-    )
+    return NextResponse.json({ ok: false, error: e?.message || 'خطأ' }, { status: 500 })
   }
 }

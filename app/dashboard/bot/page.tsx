@@ -3,7 +3,34 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
-type Msg = { role: 'user' | 'assistant'; content: string; links?: { label: string; href: string }[] }
+type Msg = {
+  role: 'user' | 'assistant'
+  content: string
+  links?: { label: string; href: string }[]
+  imageUrl?: string | null
+  videoUrl?: string | null
+}
+
+function Media({ imageUrl, videoUrl }: { imageUrl?: string | null; videoUrl?: string | null }) {
+  if (!imageUrl && !videoUrl) return null
+  return (
+    <div className="mt-2 space-y-2">
+      {imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={imageUrl} alt="مرفق" className="max-h-56 rounded-xl border border-slate-200 object-contain w-full bg-white" />
+      ) : null}
+      {videoUrl ? (
+        videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be') ? (
+          <a href={videoUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-700 underline block">
+            مشاهدة الفيديو
+          </a>
+        ) : (
+          <video src={videoUrl} controls className="w-full max-h-56 rounded-xl bg-black" />
+        )
+      ) : null}
+    </div>
+  )
+}
 
 export default function PlatformBotPage() {
   const [messages, setMessages] = useState<Msg[]>([])
@@ -18,21 +45,9 @@ export default function PlatformBotPage() {
         const res = await fetch('/api/bot/platform')
         const data = await res.json()
         if (data.name) setName(data.name)
-        setMessages([
-          {
-            role: 'assistant',
-            content:
-              data.welcome ||
-              'مرحباً، اسألني عن أي شيء يتعلق بالمنصة. المحادثة مفتوحة بلا حد لعدد الرسائل.',
-          },
-        ])
+        setMessages([{ role: 'assistant', content: data.welcome || 'مرحباً، اسأل بحرية.' }])
       } catch {
-        setMessages([
-          {
-            role: 'assistant',
-            content: 'مرحباً، أنا مساعد المنصة. اكتب سؤالك بحرية.',
-          },
-        ])
+        setMessages([{ role: 'assistant', content: 'مرحباً، اسأل عن المنصة.' }])
       }
     })()
   }, [])
@@ -62,15 +77,14 @@ export default function PlatformBotPage() {
         ...m,
         {
           role: 'assistant',
-          content: data.text || data.error || 'تعذر الرد.',
+          content: data.text || data.error || 'تعذر الرد',
           links: data.links || [],
+          imageUrl: data.imageUrl,
+          videoUrl: data.videoUrl,
         },
       ])
     } catch {
-      setMessages((m) => [
-        ...m,
-        { role: 'assistant', content: 'خطأ في الاتصال. حاول مرة أخرى.' },
-      ])
+      setMessages((m) => [...m, { role: 'assistant', content: 'خطأ اتصال' }])
     } finally {
       setLoading(false)
     }
@@ -78,35 +92,28 @@ export default function PlatformBotPage() {
 
   return (
     <div className="min-h-[70vh] flex flex-col bg-white text-slate-900 rounded-2xl border border-slate-200 overflow-hidden" dir="rtl">
-      <header className="border-b border-slate-200 px-4 py-3 flex items-center justify-between bg-white">
+      <header className="border-b border-slate-200 px-4 py-3 flex justify-between bg-white">
         <div>
-          <h1 className="font-bold text-base">{name}</h1>
-          <p className="text-[11px] text-slate-500">محادثة مفتوحة · بدون حد رسائل · معرفة المنصة</p>
+          <h1 className="font-bold">{name}</h1>
+          <p className="text-[11px] text-slate-500">بحث محسّن · وسائط · بلا حد رسائل</p>
         </div>
-        <Link href="/dashboard" className="text-sm text-blue-600">
-          رجوع
-        </Link>
+        <Link href="/dashboard" className="text-sm text-blue-600">رجوع</Link>
       </header>
 
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3 max-w-2xl w-full mx-auto">
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-start' : 'justify-end'}`}>
             <div
-              className={`max-w-[90%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
-                m.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-br-md'
-                  : 'bg-slate-100 text-slate-800 rounded-bl-md'
+              className={`max-w-[90%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
+                m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-800'
               }`}
             >
               {m.content}
+              <Media imageUrl={m.imageUrl} videoUrl={m.videoUrl} />
               {m.links && m.links.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
                   {m.links.map((l) => (
-                    <a
-                      key={l.href}
-                      href={l.href}
-                      className="text-[11px] underline text-blue-700"
-                    >
+                    <a key={l.href} href={l.href} className="text-[11px] underline text-blue-700">
                       {l.label}
                     </a>
                   ))}
@@ -123,26 +130,20 @@ export default function PlatformBotPage() {
         <div ref={endRef} />
       </div>
 
-      <div className="border-t border-slate-200 p-3 bg-white">
+      <div className="border-t border-slate-200 p-3">
         <div className="max-w-2xl mx-auto flex gap-2">
           <input
             className="flex-1 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500"
-            placeholder="اكتب أي استفسار عن المنصة..."
+            placeholder="اكتب سؤالك..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
             disabled={loading}
           />
-          <button
-            type="button"
-            onClick={send}
-            disabled={loading || !input.trim()}
-            className="rounded-2xl bg-blue-600 text-white px-5 py-3 text-sm font-medium disabled:opacity-50"
-          >
+          <button type="button" onClick={send} disabled={loading || !input.trim()} className="rounded-2xl bg-blue-600 text-white px-5 py-3 text-sm disabled:opacity-50">
             إرسال
           </button>
         </div>
-        <p className="text-center text-[10px] text-slate-400 mt-2">لا يوجد حد أقصى لعدد الرسائل</p>
       </div>
     </div>
   )

@@ -24,9 +24,10 @@ export async function POST(req: NextRequest) {
         fallback: body.fallback,
         personality: body.personality,
         enabled: body.enabled,
+        useSmallModel: body.useSmallModel,
         items: body.items,
       })
-      return NextResponse.json({ ok: true, config, message: 'تم حفظ معرفة المساعد' })
+      return NextResponse.json({ ok: true, config, message: 'تم الحفظ' })
     }
 
     if (action === 'upsert-item') {
@@ -37,33 +38,38 @@ export async function POST(req: NextRequest) {
       }
       const items = [...cfg.items]
       const idx = items.findIndex((x) => x.id === item.id)
-      if (idx >= 0) items[idx] = { ...items[idx], ...item }
-      else items.push({ ...item, enabled: item.enabled !== false, priority: item.priority || 50, keywords: item.keywords || [] })
+      const row: KnowledgeItem = {
+        id: item.id,
+        title: item.title || item.id,
+        keywords: item.keywords || [],
+        answer: item.answer,
+        links: item.links || [],
+        imageUrl: item.imageUrl || '',
+        videoUrl: item.videoUrl || '',
+        enabled: item.enabled !== false,
+        priority: item.priority || 50,
+      }
+      if (idx >= 0) items[idx] = { ...items[idx], ...row }
+      else items.push(row)
       const config = await saveAssistantConfig({ items })
       return NextResponse.json({ ok: true, config, message: 'تم حفظ العنصر' })
     }
 
     if (action === 'delete-item') {
       const cfg = await getAssistantConfig()
-      const id = String(body.id || '')
       const config = await saveAssistantConfig({
-        items: cfg.items.filter((x) => x.id !== id),
+        items: cfg.items.filter((x) => x.id !== String(body.id)),
       })
       return NextResponse.json({ ok: true, config, message: 'تم الحذف' })
     }
 
     if (action === 'retrain') {
-      // «تدريب» = إعادة حفظ/تثبيت المعرفة (زر خاص للمالك)
       const cfg = await getAssistantConfig()
-      const config = await saveAssistantConfig({
-        items: cfg.items,
-        welcome: cfg.welcome,
-        fallback: cfg.fallback,
-      })
+      const config = await saveAssistantConfig({ items: cfg.items })
       return NextResponse.json({
         ok: true,
         config,
-        message: 'تم تحديث معرفة المساعد — جاهز للردود المفتوحة',
+        message: 'تم تحديث فهرس المعرفة وتحسين جاهزية البحث',
       })
     }
 

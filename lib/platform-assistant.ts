@@ -7,6 +7,9 @@ export type KnowledgeItem = {
   keywords: string[]
   answer: string
   links?: { label: string; href: string }[]
+  /** روابط وسائط تظهر في الرد */
+  imageUrl?: string
+  videoUrl?: string
   enabled: boolean
   priority: number
 }
@@ -17,69 +20,66 @@ export type AssistantConfig = {
   fallback: string
   personality: string
   enabled: boolean
+  /** استخدام نموذج صغير لإعادة صياغة الرد عند وجود مفتاح */
+  useSmallModel: boolean
   items: KnowledgeItem[]
   updatedAt?: string
 }
 
 const FILE = path.join(process.cwd(), 'data', 'platform-assistant.json')
 
+/** مرادفات عربية لتحسين دقة البحث */
+const SYNONYMS: Record<string, string[]> = {
+  صور: ['صورة', 'تصميم', 'شعار', 'لوجو', 'بوست', 'image', 'logo'],
+  فيديو: ['مقطع', 'فيلم', 'ريلز', 'video', 'clip'],
+  موسيقى: ['اغنية', 'شيلة', 'زفة', 'نغمة', 'صوت', 'music', 'song'],
+  رصيد: ['ريمو', 'remo', 'نقاط', 'credit', 'credits', 'رصيدي'],
+  خطة: ['باقة', 'اشتراك', 'plan', 'pro', 'مجاني'],
+  دفع: ['شحن', 'جيب', 'بينانس', 'تحويل', 'ايداع', 'payment'],
+  دعم: ['مساعدة', 'مشكلة', 'خطأ', 'support', 'تواصل'],
+  حساب: ['تسجيل', 'دخول', 'login', 'register', 'كلمة المرور'],
+  برمجة: ['كود', 'موقع', 'تطبيق', 'code', 'html', 'react'],
+  هدية: ['كود', 'قسيمة', 'gift', 'كوبون'],
+}
+
 const DEFAULT_ITEMS: KnowledgeItem[] = [
   {
-    id: 'welcome-platform',
+    id: 'about',
     title: 'عن المنصة',
-    keywords: ['منصة', 'ايش', 'ما هي', 'شنو', 'تعريف', 'خدمات', 'تقدم'],
+    keywords: ['منصة', 'خدمات', 'ايش', 'ما هي', 'تعريف'],
     answer:
-      'منصة محمد الحزمي للذكاء الاصطناعي تقدّم عدة خدمات في مكان واحد: توليد الصور، الفيديو، الموسيقى، البرمجة، والدردشة. اختر الخدمة من لوحة المستخدم وابدأ بكتابة طلبك. الرصيد يُحسب بوحدة REMO.',
+      'منصة محمد الحزمي تقدّم توليد الصور والفيديو والموسيقى والبرمجة والدردشة. الرصيد بوحدة REMO من لوحة المستخدم.',
     links: [{ label: 'لوحة المستخدم', href: '/dashboard' }],
     enabled: true,
     priority: 10,
   },
   {
     id: 'images',
-    title: 'توليد الصور',
-    keywords: ['صور', 'صورة', 'شعار', 'لوجو', 'تصميم', 'image'],
+    title: 'الصور',
+    keywords: ['صور', 'صورة', 'شعار', 'لوجو', 'تصميم'],
     answer:
-      'لخدمة الصور: من لوحة المستخدم افتح «الصور»، اكتب وصفاً واضحاً أو اختر قالباً، ثم اضغط توليد. يُخصم من رصيد REMO حسب تكلفة الخدمة. إن ظهر خطأ في النموذج، جرّب وصفاً أقصر أو مزوداً آخر إن كان متاحاً.',
+      'افتح قسم الصور، اكتب وصفاً واضحاً أو اختر قالباً، ثم ولّد. التكلفة تُخصم من REMO.',
     links: [{ label: 'فتح الصور', href: '/dashboard/images' }],
+    imageUrl: '',
     enabled: true,
     priority: 20,
   },
   {
     id: 'video',
     title: 'الفيديو',
-    keywords: ['فيديو', 'مقطع', 'video', 'يوتيوب'],
-    answer:
-      'خدمة الفيديو من قائمة الخدمات. اكتب فكرة المقطع أو السيناريو ثم ولّد. بعض المزودين يُرجعون سيناريو نصياً حسب الإعداد الحالي، ويمكن تطوير الإخراج لاحقاً.',
+    keywords: ['فيديو', 'مقطع', 'ريلز'],
+    answer: 'من قسم الفيديو اكتب فكرة المقطع أو السيناريو ثم اضغط توليد.',
     links: [{ label: 'فتح الفيديو', href: '/dashboard/video' }],
-    enabled: true,
-    priority: 20,
-  },
-  {
-    id: 'music',
-    title: 'الموسيقى',
-    keywords: ['موسيقى', 'اغنية', 'شيلة', 'زفة', 'نغمة', 'music'],
-    answer:
-      'من قسم الموسيقى يمكنك طلب شيلة أو زفة أو هيكل أغنية. اكتب الأسلوب والكلمات المطلوبة ثم ولّد.',
-    links: [{ label: 'فتح الموسيقى', href: '/dashboard/music' }],
-    enabled: true,
-    priority: 20,
-  },
-  {
-    id: 'code',
-    title: 'البرمجة',
-    keywords: ['كود', 'برمجة', 'موقع', 'تطبيق', 'code', 'html', 'react'],
-    answer:
-      'قسم البرمجة يساعدك على كتابة أكواد مواقع وتطبيقات. صف المطلوب بالتفصيل (التقنية، الصفحات، الوظائف) ثم اضغط توليد.',
-    links: [{ label: 'فتح البرمجة', href: '/dashboard/code' }],
+    videoUrl: '',
     enabled: true,
     priority: 20,
   },
   {
     id: 'plans',
     title: 'الخطط والرصيد',
-    keywords: ['خطة', 'باقة', 'اشتراك', 'رصيد', 'ريمو', 'remo', 'سعر', 'مجاني', 'برو'],
+    keywords: ['خطة', 'باقة', 'رصيد', 'ريمو', 'سعر', 'اشتراك'],
     answer:
-      'الرصيد بوحدة REMO. المسجّل الجديد يحصل على رصيد مجاني حسب إعدادات المالك. عند نفاد الرصيد تظهر باقات الاشتراك ويمكن الشحن من صفحة الفوترة (محفظة جيب، تحويلات، وغيرها حسب التفعيل).',
+      'عند نفاد الرصيد تظهر الباقات. الشحن من صفحة الفوترة حسب الطرق المفعّلة (مثل محفظة جيب).',
     links: [
       { label: 'الخطط', href: '/dashboard/plans' },
       { label: 'الشحن', href: '/dashboard/billing' },
@@ -88,68 +88,53 @@ const DEFAULT_ITEMS: KnowledgeItem[] = [
     priority: 15,
   },
   {
-    id: 'payment',
-    title: 'الدفع',
-    keywords: ['دفع', 'جيب', 'بينانس', 'تحويل', 'بطاقة', 'شحن', 'ايداع'],
-    answer:
-      'طرق الدفع تعتمد على ما فعّله المالك: مثل محفظة جيب (إيداع ثم إشعار واتساب)، أو محافظ رقمية، أو بوابات أخرى. بعد الدفع اليدوي يراجع المالك الطلب ويُضاف الرصيد.',
-    links: [{ label: 'صفحة الشحن', href: '/dashboard/billing' }],
-    enabled: true,
-    priority: 15,
-  },
-  {
-    id: 'gift',
-    title: 'أكواد الهدايا',
-    keywords: ['هدية', 'كود', 'قسيمة', 'gift', 'كوبون'],
-    answer:
-      'إذا لديك كود هدية، أدخله من صفحة كود الهدية في لوحة المستخدم ليُفعَّل الرصيد أو الخطة حسب إعداد الكود من المالك.',
-    links: [{ label: 'كود هدية', href: '/dashboard/gift' }],
-    enabled: true,
-    priority: 25,
-  },
-  {
     id: 'support',
     title: 'الدعم',
-    keywords: ['دعم', 'مساعدة', 'مشكلة', 'خطأ', 'تواصل', 'واتساب', 'ايميل'],
-    answer:
-      'للدعم: راسل المالك عبر واتساب أو البريد الظاهر في صفحة اتصل بنا. اذكر نوع المشكلة ولقطة إن أمكن (توليد، دفع، تسجيل).',
+    keywords: ['دعم', 'مساعدة', 'مشكلة', 'خطأ'],
+    answer: 'للدعم راجع صفحة اتصل بنا أو واتساب المالك مع وصف المشكلة.',
     links: [{ label: 'اتصل بنا', href: '/contact' }],
     enabled: true,
     priority: 30,
-  },
-  {
-    id: 'account',
-    title: 'الحساب',
-    keywords: ['حساب', 'تسجيل', 'دخول', 'كلمة المرور', 'ايميل'],
-    answer:
-      'إنشاء الحساب من صفحة التسجيل، وتسجيل الدخول من صفحة الدخول. إذا نسيت كلمة المرور استخدم استعادة كلمة المرور إن كانت مفعّلة، أو تواصل مع الدعم.',
-    links: [
-      { label: 'تسجيل', href: '/register' },
-      { label: 'دخول', href: '/login' },
-    ],
-    enabled: true,
-    priority: 25,
   },
 ]
 
 const DEFAULT_CONFIG: AssistantConfig = {
   name: 'مساعد منصة محمد الحزمي',
   welcome:
-    'مرحباً، أنا مساعد المنصة. اسألني عن الخدمات، الرصيد، الخطط، الدفع، أو أي استفسار متعلق بالمنصة — بلا حد لعدد الرسائل.',
+    'مرحباً، أنا مساعد المنصة. اسأل بحرية عن الخدمات أو الرصيد أو الدفع — بلا حد لعدد الرسائل. يمكنني أيضاً إظهار صور أو فيديو إن أضافها المالك للمعرفة.',
   fallback:
-    'فهمت سؤالك. لم أجد تطابقاً دقيقاً في معرفة المنصة بعد. صِغ سؤالك بطريقة أخرى، أو تصفح الخدمات من لوحة المستخدم، أو تواصل مع الدعم. المالك يستطيع إضافة هذا الموضوع لمعرفة المساعد من لوحة التحكم.',
-  personality:
-    'ردودك بالعربية الفصحى المبسطة، ودية وواضحة، وتساعد المستخدم على إنجاز مهمته داخل المنصة.',
+    'لم أجد تطابقاً قوياً في معرفة المنصة. أعد صياغة السؤال أو اذكر اسم الخدمة. المالك يضيف مواضيع جديدة من لوحة «مساعد المنصة».',
+  personality: 'عربي واضح، مختصر، عملي، يوجّه المستخدم لخطوات داخل المنصة.',
   enabled: true,
+  useSmallModel: true,
   items: DEFAULT_ITEMS,
 }
 
 function normalize(s: string) {
   return (s || '')
     .toLowerCase()
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
     .replace(/[^\u0600-\u06FFa-z0-9\s]/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+function expandTokens(msg: string): Set<string> {
+  const n = normalize(msg)
+  const out = new Set<string>()
+  for (const w of n.split(' ')) {
+    if (w.length >= 2) out.add(w)
+  }
+  // توسيع بالمرادفات
+  for (const [root, list] of Object.entries(SYNONYMS)) {
+    const all = [root, ...list].map(normalize)
+    if (all.some((x) => n.includes(x) || out.has(x))) {
+      all.forEach((x) => x.split(' ').forEach((t) => t.length >= 2 && out.add(t)))
+    }
+  }
+  return out
 }
 
 export async function getAssistantConfig(): Promise<AssistantConfig> {
@@ -184,30 +169,103 @@ export async function saveAssistantConfig(
   return next
 }
 
-function scoreItem(msg: string, item: KnowledgeItem): number {
+/** دقة بحث محسّنة: كلمات + مرادفات + عنوان + أولوية */
+export function scoreItem(msg: string, item: KnowledgeItem): number {
   if (!item.enabled) return 0
+  const msgTok = expandTokens(msg)
   const n = normalize(msg)
   let score = 0
+
   for (const kw of item.keywords || []) {
     const k = normalize(kw)
     if (!k) continue
-    if (n.includes(k)) score += 3
-    // تطابق جزئي للكلمات
-    for (const w of k.split(' ')) {
-      if (w.length >= 2 && n.includes(w)) score += 1
+    if (n.includes(k)) score += 5
+    for (const part of k.split(' ')) {
+      if (part.length >= 2 && msgTok.has(part)) score += 2
+      if (part.length >= 2 && n.includes(part)) score += 1
     }
   }
+
   const title = normalize(item.title)
-  if (title && n.includes(title)) score += 2
-  // كلمات الرسالة داخل الجواب (ضعيف)
-  for (const w of n.split(' ')) {
-    if (w.length < 3) continue
-    if (normalize(item.answer).includes(w)) score += 0.15
+  if (title) {
+    if (n.includes(title)) score += 4
+    for (const t of title.split(' ')) {
+      if (t.length >= 2 && msgTok.has(t)) score += 2
+    }
   }
-  return score + (item.priority || 0) * 0.01
+
+  // تداخل مع نص الجواب (خفيف)
+  const ans = normalize(item.answer)
+  let overlap = 0
+  for (const t of msgTok) {
+    if (t.length >= 3 && ans.includes(t)) overlap++
+  }
+  score += Math.min(overlap, 5) * 0.4
+  score += (item.priority || 0) * 0.02
+  return score
 }
 
-/** رد مفتوح: يجمع أفضل المعرفة + صياغة حوارية بلا حد رسائل */
+async function polishWithSmallModel(
+  userMsg: string,
+  baseAnswer: string,
+  personality: string
+): Promise<string | null> {
+  const gemini = (process.env.GEMINI_API_KEY || '').trim()
+  const openai = (process.env.OPENAI_API_KEY || '').trim()
+  const system = `${personality || 'مساعد منصة عربي واضح.'}
+أعد صياغة المعلومة التالية كرد محادثة قصير ومفيد للمستخدم، دون اختراع أسعار أو ميزات غير مذكورة.
+المعلومة:
+${baseAnswer}`
+
+  try {
+    if (gemini) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${gemini}`
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: `سؤال المستخدم: \( {userMsg}\n\n \){system}` }],
+            },
+          ],
+          generationConfig: { maxOutputTokens: 400, temperature: 0.4 },
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      const text =
+        data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') ||
+        ''
+      if (text.trim()) return text.trim()
+    }
+    if (openai) {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${openai}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          temperature: 0.4,
+          max_tokens: 400,
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: userMsg },
+          ],
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      const text = data?.choices?.[0]?.message?.content
+      if (text?.trim()) return text.trim()
+    }
+  } catch {
+    /* تجاهل — نرجع الرد المحلي */
+  }
+  return null
+}
+
 export async function replyOpen(
   message: string,
   history: { role: string; content: string }[] = []
@@ -215,76 +273,94 @@ export async function replyOpen(
   text: string
   matchedIds: string[]
   links: { label: string; href: string }[]
+  imageUrl?: string
+  videoUrl?: string
+  engine: string
 }> {
   const cfg = await getAssistantConfig()
   if (!cfg.enabled) {
     return {
-      text: 'المساعد متوقف مؤقتاً من لوحة المالك.',
+      text: 'المساعد متوقف مؤقتاً.',
       matchedIds: [],
       links: [],
+      engine: 'off',
     }
   }
 
   const msg = (message || '').trim()
   if (!msg) {
-    return { text: cfg.welcome, matchedIds: [], links: [] }
+    return {
+      text: cfg.welcome,
+      matchedIds: [],
+      links: [],
+      engine: 'welcome',
+    }
   }
 
-  // تحيات
   if (/^(السلام|مرحبا|مرحباً|هلا|hi|hello|سلام)[\s!.]*$/i.test(msg)) {
-    return { text: cfg.welcome, matchedIds: [], links: [] }
+    return {
+      text: cfg.welcome,
+      matchedIds: [],
+      links: [],
+      engine: 'greeting',
+    }
   }
 
   const ranked = [...cfg.items]
     .map((it) => ({ it, score: scoreItem(msg, it) }))
-    .filter((x) => x.score >= 2)
+    .filter((x) => x.score >= 2.5)
     .sort((a, b) => b.score - a.score)
 
   if (!ranked.length) {
-    // رد مفتوح غير مغلق: يبني على آخر سياق إن وُجد
-    const lastUser = [...history].reverse().find((h) => h.role === 'user')
-    let text = cfg.fallback
-    if (lastUser?.content) {
-      text +=
-        '\n\nيمكنك إعادة صياغة سؤالك أو ذكر اسم الخدمة (صور، فيديو، رصيد، دفع…).'
-    }
     return {
-      text,
+      text: cfg.fallback,
       matchedIds: [],
       links: [
         { label: 'لوحة المستخدم', href: '/dashboard' },
         { label: 'اتصل بنا', href: '/contact' },
       ],
+      engine: 'fallback',
     }
   }
 
-  // دمج حتى أفضل 2 مواضيع لرد أغنى (مفتوح أكثر من FAQ واحد)
   const top = ranked.slice(0, 2)
-  const parts: string[] = []
+  const ids = top.map((x) => x.it.id)
   const links: { label: string; href: string }[] = []
-  const ids: string[] = []
+  let imageUrl = ''
+  let videoUrl = ''
+  const answers: string[] = []
 
   for (const { it } of top) {
-    ids.push(it.id)
-    parts.push(it.answer)
+    answers.push(it.answer)
     for (const l of it.links || []) {
       if (!links.some((x) => x.href === l.href)) links.push(l)
     }
+    if (it.imageUrl && !imageUrl) imageUrl = it.imageUrl
+    if (it.videoUrl && !videoUrl) videoUrl = it.videoUrl
   }
 
-  let text = parts.join('\n\n')
+  let text = answers.join('\n\n')
+  let engine = 'knowledge'
 
-  // لمسة حوارية مفتوحة
-  if (ranked[0].score < 4) {
-    text =
-      'بناءً على سؤالك هذا أقرب ما لدي في معرفة المنصة:\n\n' + text
+  // نموذج صغير/متوسط خفيف: إعادة صياغة فقط (ليس نموذجاً ضخماً)
+  if (cfg.useSmallModel) {
+    const polished = await polishWithSmallModel(msg, text, cfg.personality)
+    if (polished) {
+      text = polished
+      engine = 'knowledge+small-model'
+    }
   }
 
-  if (cfg.personality) {
-    // لا نُظهر الشخصية للمستخدم؛ التأثير عبر الأسلوب فقط في النصوص المحفوظة
+  if (!cfg.useSmallModel || engine === 'knowledge') {
+    text += '\n\nهل تريد تفصيلاً أكثر؟ اكتب بحرية.'
   }
 
-  text += '\n\nهل تريد تفصيلاً أكثر عن جزء معيّن؟ اكتب بحرية.'
-
-  return { text, matchedIds: ids, links }
+  return {
+    text,
+    matchedIds: ids,
+    links,
+    imageUrl: imageUrl || undefined,
+    videoUrl: videoUrl || undefined,
+    engine,
+  }
 }
