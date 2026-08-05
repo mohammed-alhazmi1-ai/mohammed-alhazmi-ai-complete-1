@@ -9,6 +9,14 @@ export type ServiceToggle = {
   order: number
 }
 
+export type NavButton = {
+  id: string
+  label: string
+  href: string
+  enabled: boolean
+  order: number
+}
+
 export type PlatformFullSettings = {
   freeSignupRemo: number
   siteName: string
@@ -19,6 +27,7 @@ export type PlatformFullSettings = {
   maintenanceMode: boolean
   maintenanceMessage: string
   services: ServiceToggle[]
+  navButtons: NavButton[]
   customHeadHtml: string
   customBodyHtml: string
   blogEnabled: boolean
@@ -28,18 +37,39 @@ export type PlatformFullSettings = {
   adsenseClient: string
   adsenseSlotHome: string
   adsenseSlotHome2: string
+  logoUrl: string
+  faviconUrl: string
+  homeBackgroundUrl: string
+  dashboardBackgroundUrl: string
+  primaryColor: string
+  aboutTitle: string
+  aboutBody: string
+  contactTitle: string
+  contactBody: string
+  privacyTitle: string
+  privacyBody: string
+  termsTitle: string
+  termsBody: string
   updatedAt?: string
 }
 
 const FILE = path.join(process.cwd(), 'data', 'platform-settings-full.json')
 
-export const DEFAULT_SERVICES: ServiceToggle[] = [
+const DEFAULT_SERVICES: ServiceToggle[] = [
   { id: 'images', name: 'الصور', href: '/dashboard/images', enabled: true, order: 1 },
   { id: 'video', name: 'الفيديو', href: '/dashboard/video', enabled: true, order: 2 },
   { id: 'music', name: 'الموسيقى', href: '/dashboard/music', enabled: true, order: 3 },
   { id: 'code', name: 'البرمجة', href: '/dashboard/code', enabled: true, order: 4 },
   { id: 'chat', name: 'الدردشة', href: '/dashboard/chat', enabled: true, order: 5 },
   { id: 'bot', name: 'المساعد الذكي', href: '/dashboard/bot', enabled: true, order: 6 },
+]
+
+const DEFAULT_NAV: NavButton[] = [
+  { id: 'start', label: 'ابدأ الآن', href: '/register', enabled: true, order: 1 },
+  { id: 'login', label: 'تسجيل الدخول', href: '/login', enabled: true, order: 2 },
+  { id: 'plans', label: 'الخطط', href: '/#plans', enabled: true, order: 3 },
+  { id: 'about', label: 'من نحن', href: '/about', enabled: true, order: 4 },
+  { id: 'contact', label: 'اتصل بنا', href: '/contact', enabled: true, order: 5 },
 ]
 
 export const DEFAULT_FULL: PlatformFullSettings = {
@@ -52,6 +82,7 @@ export const DEFAULT_FULL: PlatformFullSettings = {
   maintenanceMode: false,
   maintenanceMessage: 'المنصة تحت الصيانة مؤقتاً. نعود قريباً.',
   services: DEFAULT_SERVICES,
+  navButtons: DEFAULT_NAV,
   customHeadHtml: '',
   customBodyHtml: '',
   blogEnabled: false,
@@ -61,9 +92,23 @@ export const DEFAULT_FULL: PlatformFullSettings = {
   adsenseClient: '',
   adsenseSlotHome: '',
   adsenseSlotHome2: '',
+  logoUrl: '',
+  faviconUrl: '',
+  homeBackgroundUrl: '',
+  dashboardBackgroundUrl: '',
+  primaryColor: '#2563eb',
+  aboutTitle: 'من نحن',
+  aboutBody:
+    'منصة محمد الحزمي للذكاء الاصطناعي منصة عربية تقدم توليد الصور والفيديو والموسيقى والبرمجة والدردشة الذكية.',
+  contactTitle: 'اتصل بنا',
+  contactBody: 'للتواصل والدعم الفني راسلنا عبر البريد أو واتساب.',
+  privacyTitle: 'سياسة الخصوصية',
+  privacyBody: 'نحترم خصوصيتك ولا نبيع بياناتك لأطراف ثالثة.',
+  termsTitle: 'الشروط والأحكام',
+  termsBody: 'باستخدامك المنصة فإنك توافق على شروط الاستخدام وسياسة الرصيد REMO.',
 }
 
-async function read(): Promise<PlatformFullSettings> {
+export async function getFullSettings(): Promise<PlatformFullSettings> {
   try {
     const raw = await fs.readFile(FILE, 'utf8')
     const data = JSON.parse(raw)
@@ -74,45 +119,40 @@ async function read(): Promise<PlatformFullSettings> {
         Array.isArray(data.services) && data.services.length
           ? data.services
           : DEFAULT_SERVICES,
+      navButtons:
+        Array.isArray(data.navButtons) && data.navButtons.length
+          ? data.navButtons
+          : DEFAULT_NAV,
     }
   } catch {
-    return { ...DEFAULT_FULL, services: [...DEFAULT_SERVICES] }
+    return {
+      ...DEFAULT_FULL,
+      services: [...DEFAULT_SERVICES],
+      navButtons: [...DEFAULT_NAV],
+    }
   }
-}
-
-async function write(s: PlatformFullSettings) {
-  await fs.mkdir(path.dirname(FILE), { recursive: true })
-  s.updatedAt = new Date().toISOString()
-  await fs.writeFile(FILE, JSON.stringify(s, null, 2), 'utf8')
-}
-
-export async function getFullSettings() {
-  return read()
 }
 
 export async function saveFullSettings(
   patch: Partial<PlatformFullSettings>
 ): Promise<PlatformFullSettings> {
-  const cur = await read()
+  const cur = await getFullSettings()
   const next: PlatformFullSettings = {
     ...cur,
     ...patch,
     freeSignupRemo: Math.max(
       0,
-      Math.min(
-        100000,
-        Number(patch.freeSignupRemo ?? cur.freeSignupRemo) || 0
-      )
+      Math.min(100000, Number(patch.freeSignupRemo ?? cur.freeSignupRemo) || 0)
     ),
     services: patch.services ?? cur.services,
+    navButtons: patch.navButtons ?? cur.navButtons,
+    updatedAt: new Date().toISOString(),
   }
-  await write(next)
-
-  // مزامنة مع ملف المرحلة A إن وُجد
+  await fs.mkdir(path.dirname(FILE), { recursive: true })
+  await fs.writeFile(FILE, JSON.stringify(next, null, 2), 'utf8')
   try {
-    const aPath = path.join(process.cwd(), 'data', 'settings-a.json')
     await fs.writeFile(
-      aPath,
+      path.join(process.cwd(), 'data', 'settings-a.json'),
       JSON.stringify(
         {
           freeSignupRemo: next.freeSignupRemo,
@@ -127,6 +167,5 @@ export async function saveFullSettings(
   } catch {
     /* ignore */
   }
-
   return next
 }
