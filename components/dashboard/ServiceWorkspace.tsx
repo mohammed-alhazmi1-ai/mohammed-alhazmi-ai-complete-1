@@ -127,22 +127,36 @@ export default function ServiceWorkspace({ service }: { service: ServiceKey }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: buildPromptForService(prompt),
-          tone: lang === 'ar' ? 'احترافي وواضح' : 'Professional',
-          model: provider === 'openai' ? 'GPT-4o Mini' : 'Gemini 1.5 Flash',
-          length: service === 'code' ? 'طويل' : 'متوسط',
+          type: service,
+          service: service,
+          serviceType: service,
           email: userEmail,
           provider: provider || undefined,
-          serviceType: service,
           serviceCost: cost,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'فشل التوليد');
-      setResult(data.result);
-      if (typeof data.creditsRemaining === 'number') setREMOsLeft(data.creditsRemaining);
-      if (typeof data.creditsUsed === 'number') setLastCost(data.creditsUsed);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error || data.text || 'فشل التوليد');
+      }
+      // توافق مع API: text | result | imageUrl
+      let out = data.text || data.result || '';
+      if (data.imageUrl) {
+        out = (out ? out + '\n\n' : '') + '🖼️ صورة:\n' + data.imageUrl;
+      }
+      if (!out && data.error) out = data.error;
+      setResult(out || (lang === 'ar' ? 'اكتمل بدون نص.' : 'Done (empty text).'));
+      if (typeof data.creditsLeft === 'number') setREMOsLeft(data.creditsLeft);
+      else if (typeof data.creditsRemaining === 'number') setREMOsLeft(data.creditsRemaining);
+      if (typeof data.cost === 'number') setLastCost(data.cost);
+      else if (typeof data.creditsUsed === 'number') setLastCost(data.creditsUsed);
       setMetaInfo(
-        [data.provider || provider, data.model, data.usedFallback ? 'Fallback' : null, data.jobId ? `طلب #${String(data.jobId).slice(0, 8)}` : null]
+        [
+          data.provider || provider,
+          data.model,
+          data.usedFallback ? 'Fallback' : null,
+          data.jobId ? `طلب #${String(data.jobId).slice(0, 8)}` : null,
+        ]
           .filter(Boolean)
           .join(' · ')
       );
@@ -222,7 +236,7 @@ export default function ServiceWorkspace({ service }: { service: ServiceKey }) {
             placeholder={lang === 'ar' ? 'اكتب تفاصيل طلبك هنا...' : 'Write your prompt...'}
             className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white text-sm focus:outline-none focus:border-blue-500 resize-y min-h-[120px]" />
           {error && <div className="p-3 rounded-xl bg-red-950/50 border border-red-800 text-red-400 text-xs">{error}</div>}
-          <button onClick={handleGenerate} disabled={loading || !provider}
+          <button onClick={handleGenerate} disabled={loading}
             className="w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold rounded-xl text-sm">
             {loading ? t('generating') : `✨ \( {t('generate')} (− \){cost} REMO)`}
           </button>

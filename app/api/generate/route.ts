@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}))
     const prompt = String(body.prompt || body.text || body.message || '').trim()
-    const type = mapType(String(body.type || body.service || 'chat'))
+    const type = mapType(String(body.type || body.service || body.serviceType || 'chat'))
     const cost = COST[type] ?? 5
 
     if (!prompt) {
