@@ -197,7 +197,7 @@ export function scoreItem(msg: string, item: KnowledgeItem): number {
   // تداخل مع نص الجواب (خفيف)
   const ans = normalize(item.answer)
   let overlap = 0
-  for (const t of msgTok) {
+  for (const t of Array.from(msgTok)) {
     if (t.length >= 3 && ans.includes(t)) overlap++
   }
   score += Math.min(overlap, 5) * 0.4
