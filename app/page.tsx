@@ -122,6 +122,8 @@ export default function Home() {
   const about = settings?.aboutAr || 'منصة SaaS عربية تجمع أحدث تقنيات الذكاء الاصطناعي للصور والفيديو والموسيقى والبرمجة والدردشة — بواجهة سهلة ودعم كامل للعربية.';
   const footer = settings?.footerTextAr || '{footer}';
   const support = settings?.supportEmail || 'support@mohammed-alhazmi.ai';
+  }
+
   const primary = settings?.primaryColor || '#2563eb';
 
   return (
