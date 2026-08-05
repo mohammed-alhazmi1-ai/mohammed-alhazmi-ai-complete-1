@@ -8,6 +8,7 @@ export async function GET() {
   const s = await getFullSettings()
   const ads = await getAdSense()
   return NextResponse.json({
+    logoUrl: s.logoUrl || '',
     ok: true,
     siteName: s.siteName,
     siteTagline: s.siteTagline,

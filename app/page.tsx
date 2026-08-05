@@ -1,4 +1,5 @@
 'use client'
+import SiteLogo from '@/components/site/SiteLogo'
 import HomeAdSense from '@/components/site/HomeAdSense';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -110,7 +111,7 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
-  const name = settings?.siteNameAr || 'منصة محمد الحزمي';
+  const name = settings?.siteNameAr || ' الحزمي';
   const nameEn = settings?.siteNameEn || 'Mohammed Alhazmi AI';
   const emoji = settings?.logoEmoji || '🚀';
   const tagline = settings?.taglineAr || '{tagline}';
@@ -122,6 +123,9 @@ export default function Home() {
   const primary = settings?.primaryColor || '#2563eb';
 
   return (
+    <>
+    <div className="absolute top-4 right-4 z-20 px-4"><SiteLogo /></div>
+    
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-blue-500 selection:text-white" dir="rtl">
       {/* ===== الشريط العلوي ===== */}
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-xl">
