@@ -1,4 +1,5 @@
-'use client';
+'use client'
+import HomeAdSense from '@/components/site/HomeAdSense';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import NavAuthButtons from '@/components/ui/NavAuthButtons';
@@ -214,6 +215,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+      <HomeAdSense slot="home" />
+
 
       {/* ===== الخدمات ===== */}
       <section id="services" className="py-20 border-t border-slate-900 relative">
@@ -367,6 +370,7 @@ export default function Home() {
       </section>
 
       {/* ===== التذييل ===== */}
+      <HomeAdSense slot="home2" />
       <footer id="about" className="border-t border-slate-900 bg-slate-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14 grid md:grid-cols-3 gap-10">
           <div>

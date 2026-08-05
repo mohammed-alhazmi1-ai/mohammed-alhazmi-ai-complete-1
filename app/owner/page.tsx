@@ -15,6 +15,7 @@ export default function OwnerHome() {
   return (
     <div className="min-h-screen bg-slate-950 text-white p-8" dir="rtl">
       <h1 className="text-2xl font-bold mb-6">لوحة المالك</h1>
+      <a href="/owner/adsense" className="block rounded-2xl border border-slate-700 p-4 mb-3 font-medium">📢 إعلانات AdSense للرئيسية</a>
       <a href="/owner/plans" className="block rounded-2xl border border-slate-700 p-4 mb-3 font-medium">📦 إدارة الخطط (المرحلة B)</a>
       <a href="/owner/jobs" className="block rounded-2xl border border-slate-700 p-4 mb-3 font-medium">📋 الطلبات الفاشلة + فحص المزود</a>
       <a href="/owner/settings" className="block rounded-2xl border border-slate-700 p-4 mb-3 font-medium">⚙️ إعدادات المنصة (المرحلة A)</a>

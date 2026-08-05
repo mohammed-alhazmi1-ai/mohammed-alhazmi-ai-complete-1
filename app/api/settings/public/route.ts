@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { getFullSettings } from '@/lib/platform-settings-full'
+import { getAdSense } from '@/lib/adsense-settings'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const s = await getFullSettings()
+  const ads = await getAdSense()
   return NextResponse.json({
     ok: true,
     siteName: s.siteName,
@@ -20,5 +22,9 @@ export async function GET() {
     blogIntro: s.blogIntro,
     customHeadHtml: s.customHeadHtml || '',
     customBodyHtml: s.customBodyHtml || '',
+    adsenseEnabled: ads.adsenseEnabled,
+    adsenseClient: ads.adsenseClient,
+    adsenseSlotHome: ads.adsenseSlotHome,
+    adsenseSlotHome2: ads.adsenseSlotHome2,
   })
 }

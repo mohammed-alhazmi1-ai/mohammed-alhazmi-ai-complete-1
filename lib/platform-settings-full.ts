@@ -24,6 +24,10 @@ export type PlatformFullSettings = {
   blogEnabled: boolean
   blogTitle: string
   blogIntro: string
+  adsenseEnabled: boolean
+  adsenseClient: string
+  adsenseSlotHome: string
+  adsenseSlotHome2: string
   updatedAt?: string
 }
 
@@ -53,6 +57,10 @@ export const DEFAULT_FULL: PlatformFullSettings = {
   blogEnabled: false,
   blogTitle: 'مدونة المنصة',
   blogIntro: 'مقالات ونصائح حول الذكاء الاصطناعي',
+  adsenseEnabled: false,
+  adsenseClient: '',
+  adsenseSlotHome: '',
+  adsenseSlotHome2: '',
 }
 
 async function read(): Promise<PlatformFullSettings> {

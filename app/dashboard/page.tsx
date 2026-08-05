@@ -223,7 +223,7 @@ export default function DashboardPage() {
         p.nameAr === currentPlan
     )?.nameAr || currentPlan;
 
-  return (<div className="min-h-screen bg-slate-950 text-slate-100" dir="rtl">
+  return (<div data-user-home className="space-y-8" dir="rtl">
       {/* ===== الشريط العلوي: اسم المستخدم + الخطة + الرصيد ===== */}
       <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/95 backdrop-blur-md">
 
