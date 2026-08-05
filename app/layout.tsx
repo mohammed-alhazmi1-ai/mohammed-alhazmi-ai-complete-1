@@ -1,3 +1,4 @@
+import CustomScripts from '@/components/site/CustomScripts'
 import './globals.css';
 import { LanguageProvider } from '@/lib/i18n/LanguageContext';
 

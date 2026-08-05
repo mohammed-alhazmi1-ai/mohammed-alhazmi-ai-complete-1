@@ -11,8 +11,8 @@ export default function CustomScripts() {
       try {
         const res = await fetch('/api/settings/public', { cache: 'no-store' })
         const data = await res.json()
-        if (data.customHeadHtml) setHead(data.customHeadHtml)
-        if (data.customBodyHtml) setBody(data.customBodyHtml)
+        if (data.customHeadHtml) setHead(String(data.customHeadHtml))
+        if (data.customBodyHtml) setBody(String(data.customBodyHtml))
       } catch {
         /* ignore */
       }
@@ -20,15 +20,14 @@ export default function CustomScripts() {
   }, [])
 
   useEffect(() => {
-    if (!head && !body) return
-    // حقن head
-    if (head) {
+    if (!head) return
+    try {
       const wrap = document.createElement('div')
       wrap.innerHTML = head
       Array.from(wrap.childNodes).forEach((node) => {
         if (node.nodeName === 'SCRIPT') {
-          const s = document.createElement('script')
           const el = node as HTMLScriptElement
+          const s = document.createElement('script')
           if (el.src) s.src = el.src
           else s.text = el.textContent || ''
           Array.from(el.attributes || []).forEach((a) => {
@@ -39,14 +38,11 @@ export default function CustomScripts() {
           document.head.appendChild(node.cloneNode(true))
         }
       })
+    } catch {
+      /* ignore */
     }
   }, [head])
 
   if (!body) return null
-  return (
-    <div
-      suppressHydrationWarning
-      dangerouslySetInnerHTML={{ __html: body }}
-    />
-  )
+  return <div suppressHydrationWarning dangerouslySetInnerHTML={{ __html: body }} />
 }
