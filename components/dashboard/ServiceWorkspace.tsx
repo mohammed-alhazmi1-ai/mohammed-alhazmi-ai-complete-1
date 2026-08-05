@@ -238,7 +238,7 @@ export default function ServiceWorkspace({ service }: { service: ServiceKey }) {
           {error && <div className="p-3 rounded-xl bg-red-950/50 border border-red-800 text-red-400 text-xs">{error}</div>}
           <button onClick={handleGenerate} disabled={loading}
             className="w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold rounded-xl text-sm">
-            {loading ? t('generating') : `✨ \( {t('generate')} (− \){cost} REMO)`}
+                {loading ? (lang === 'ar' ? 'جاري التوليد...' : 'Generating...') : `✨ ${lang === 'ar' ? 'توليد' : 'Generate'} (− ${cost} REMO)`}
           </button>
         </section>
 

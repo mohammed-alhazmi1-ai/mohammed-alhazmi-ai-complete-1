@@ -97,7 +97,7 @@ async function geminiChat(prompt: string, model = 'gemini-2.0-flash'): Promise<G
 }
 
 /** ---- OpenAI Images (DALL·E) ---- */
-async function openaiImage(prompt: string, model = 'dall-e-3'): Promise<GenResult> {
+async function openaiImage(prompt: string, model = 'dall-e-2'): Promise<GenResult> {
   const key = env('OPENAI_API_KEY')
   if (!key) return { ok: false, provider: 'openai', model, error: 'OPENAI_API_KEY مفقود' }
 
