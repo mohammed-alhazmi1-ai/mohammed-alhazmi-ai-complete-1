@@ -68,7 +68,7 @@ export default function FileActions({
         fd.append('file', file)
         const res = await fetch('/api/upload', { method: 'POST', body: fd })
         const data = await res.json()
-        if (!res.ok || !data.ok) throw new Error(data.error || 'فشل الرفع')
+        if (!res.ok || !data.ok) throw new Error(data.error || 'فشل الرفع — قد يكون الملف مرفوضاً أمنياً')
         const payload: UploadResult = {
           url: data.url,
           filename: data.filename,
