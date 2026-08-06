@@ -11,9 +11,7 @@ export default function AnimatedPlatformName({
   className?: string
   size?: 'sm' | 'md' | 'lg' | 'xl'
 }) {
-  const [name, setName] = useState(
-    nameProp || 'منصة محمد الحزمي للذكاء الاصطناعي'
-  )
+  const [name, setName] = useState(nameProp || 'منصة محمد الحزمي للذكاء الاصطناعي')
 
   useEffect(() => {
     if (nameProp) {
@@ -35,10 +33,10 @@ export default function AnimatedPlatformName({
     size === 'xl'
       ? 'text-3xl sm:text-4xl md:text-5xl'
       : size === 'lg'
-        ? 'text-2xl sm:text-3xl md:text-4xl'
+        ? 'text-2xl sm:text-3xl'
         : size === 'md'
           ? 'text-xl sm:text-2xl'
-          : 'text-base sm:text-lg'
+          : 'text-base'
 
   return (
     <div className={`relative w-full max-w-3xl mx-auto text-center ${className}`} dir="rtl">
@@ -59,9 +57,7 @@ export default function AnimatedPlatformName({
       <h1 className={`font-black leading-tight ${sizeCls}`}>
         <span className="yemen-title-gradient">{name}</span>
       </h1>
-      <p className="mt-2 text-[11px] text-slate-400 tracking-widest">
-        🇾🇪 اليمن · ذكاء اصطناعي عربي
-      </p>
+      <p className="mt-2 text-[11px] text-slate-400">🇾🇪 اليمن · ذكاء اصطناعي عربي</p>
     </div>
   )
 }
