@@ -177,7 +177,6 @@ async function testProvider(slug: string, key: string) {
 
     return { success: false, message: e?.message || 'فشل الاتصال' }
   }
-}
 
 export async function GET() {
   try {
