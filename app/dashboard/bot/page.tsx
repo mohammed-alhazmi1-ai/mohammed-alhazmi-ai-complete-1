@@ -138,11 +138,10 @@ export default function PlatformBotPage() {
       <div className="border-t border-slate-200 p-3">
         <div className="max-w-2xl mx-auto mb-2">
           <FileActions
-            accept="image/*,.txt,.md,.pdf"
             resultText={messages.filter((m) => m.role === 'assistant').map((m) => m.content).join('\n\n---\n\n')}
             resultUrl={messages.map((m) => m.imageUrl).filter(Boolean).pop() as string | undefined}
-            onUpload={({ name, dataUrl }) => {
-              setAttachName(name)
+            onUploaded={({ originalName, url } => {
+              setAttachName(originalName)
               setAttachData(dataUrl)
               setInput((v) => v || `لدي ملف: ${name} — `)
             }}
