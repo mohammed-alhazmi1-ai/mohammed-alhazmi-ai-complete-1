@@ -1,5 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+type ProviderTestResult = { success: boolean; message: string }
+
+function normalizeTestResult(result: unknown): ProviderTestResult {
+  if (result && typeof result === 'object' && !(result instanceof Response) && 'success' in result) {
+    const r = result as { success?: boolean; message?: string; ok?: boolean }
+    return {
+      success: Boolean(r.success ?? r.ok),
+      message: String(r.message ?? (r.success || r.ok ? 'OK' : 'فشل')),
+    }
+  }
+  if (result instanceof Response) {
+    return {
+      success: result.ok,
+      message: result.ok ? `HTTP ${result.status}` : `HTTP ${result.status}`,
+    }
+  }
+  return { success: false, message: 'نتيجة اختبار غير معروفة' }
+}
+
+
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
@@ -64,7 +84,7 @@ function fromEnvFallback() {
           keyName: s.envKey,
           hasValue: Boolean(val),
           masked: mask(val),
-          lastTestOk: null as boolean | null,
+          lastTestOk: normalizeTestResult(result).success,
         },
       ],
       models: [
@@ -98,7 +118,7 @@ async function listFromDb(prisma: any) {
       keyName: k.keyName,
       hasValue: Boolean(k.keyValue),
       masked: mask(k.keyValue || ''),
-      lastTestOk: k.lastTestOk ?? null,
+      lastTestOk: normalizeTestResult(result).success,
     })),
     models: (p.models || []).map((m: any) => ({
       id: m.id,
@@ -354,14 +374,14 @@ export async function POST(req: NextRequest) {
       if (p.keys?.[0]?.id) {
         await prisma.providerKey.update({
           where: { id: p.keys[0].id },
-          data: { lastTestAt: new Date(), lastTestOk: Boolean((result as any)?.success ?? (result as any)?.ok) },
+          data: { lastTestAt: new Date(), lastTestOk: normalizeTestResult(result).success},
         })
       }
       await prisma.$disconnect()
       return NextResponse.json({
         ok: true,
         success: ((typeof result === 'object' && result && 'success' in result) ? (result as { success: boolean }).success : false),
-        message: result.message,
+        message: normalizeTestResult(result).message,
       })
     }
 
