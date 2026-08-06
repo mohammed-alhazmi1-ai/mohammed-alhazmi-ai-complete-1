@@ -170,7 +170,10 @@ async function testProvider(slug: string, key: string) {
     }
     return { success: true, message: 'تم (بدون اختبار مخصص)' }
   } catch (e: any) {
-      if (e?.message?.includes('credits remaining') || e?.status === 429 || e?.error?.code === 'insufficient_quota') { return new Response(JSON.stringify({ error: 'عذراً، رصيد مفتاح OpenAI قد نفد. يرجى اختيار مزود بديل مجاني من القائمة أو شحن رصيدك.', success: false }), { status: 402, headers: { 'Content-Type': 'application/json' } }); }
+      if (e?.message?.includes('credits remaining') || e?.status === 429) {
+      return { success: false, message: 'رصيد غير كافٍ' }
+    }
+    }
 
     return { success: false, message: e?.message || 'فشل الاتصال' }
   }
@@ -199,7 +202,10 @@ export async function GET() {
       note: 'اعرض من البيئة. اضغط «إنشاء المزودين الافتراضيين» لحفظهم في القاعدة.',
     })
   } catch (e: any) {
-      if (e?.message?.includes('credits remaining') || e?.status === 429 || e?.error?.code === 'insufficient_quota') { return new Response(JSON.stringify({ error: 'عذراً، رصيد مفتاح OpenAI قد نفد. يرجى اختيار مزود بديل مجاني من القائمة أو شحن رصيدك.', success: false }), { status: 402, headers: { 'Content-Type': 'application/json' } }); }
+      if (e?.message?.includes('credits remaining') || e?.status === 429) {
+      return { success: false, message: 'رصيد غير كافٍ' }
+    }
+    }
 
     return NextResponse.json({
       ok: true,
@@ -236,7 +242,10 @@ export async function POST(req: NextRequest) {
         
   // [تم الحقن] تخطي OpenAI إذا تم اختيار مزود آخر مؤقتاً لتجنب خطأ الرصيد
   try { const clone = await req.clone().json(); if(clone.provider && clone.provider.toLowerCase() !== 'openai' && !clone.provider.toLowerCase().includes('gpt')) { return new Response(JSON.stringify({ success: true, result: 'تم استقبال الطلب بنجاح عبر ' + clone.provider + ' 🚀 (تحتاج فقط لربط الـ API الخاص به في الخلفية)', message: 'تم التحويل بنجاح' }), { status: 200, headers: { 'Content-Type': 'application/json' } }); } } catch(e) {
-      if (e?.message?.includes('credits remaining') || e?.status === 429 || e?.error?.code === 'insufficient_quota') { return new Response(JSON.stringify({ error: 'عذراً، رصيد مفتاح OpenAI قد نفد. يرجى اختيار مزود بديل مجاني من القائمة أو شحن رصيدك.', success: false }), { status: 402, headers: { 'Content-Type': 'application/json' } }); }
+      if (e?.message?.includes('credits remaining') || e?.status === 429) {
+      return { success: false, message: 'رصيد غير كافٍ' }
+    }
+    }
 }
 
   try {
@@ -388,7 +397,10 @@ export async function POST(req: NextRequest) {
     await prisma.$disconnect()
     return NextResponse.json({ ok: false, error: 'إجراء غير معروف' }, { status: 400 })
   } catch (e: any) {
-      if (e?.message?.includes('credits remaining') || e?.status === 429 || e?.error?.code === 'insufficient_quota') { return new Response(JSON.stringify({ error: 'عذراً، رصيد مفتاح OpenAI قد نفد. يرجى اختيار مزود بديل مجاني من القائمة أو شحن رصيدك.', success: false }), { status: 402, headers: { 'Content-Type': 'application/json' } }); }
+      if (e?.message?.includes('credits remaining') || e?.status === 429) {
+      return { success: false, message: 'رصيد غير كافٍ' }
+    }
+    }
 
     return NextResponse.json(
       {
