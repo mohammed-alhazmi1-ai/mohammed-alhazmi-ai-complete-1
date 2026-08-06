@@ -79,7 +79,7 @@ export default function BotPage() {
       <header className="border-b border-slate-200 px-4 py-3 flex justify-between bg-white">
         <div>
           <h1 className="font-bold">{name}</h1>
-          <p className="text-xs text-slate-500">ردود من معرفة المنصة · غير محدود</p>
+          <p className="text-xs text-slate-500">ردود من معرفة المنصة</p>
         </div>
       </header>
 
@@ -87,11 +87,11 @@ export default function BotPage() {
         {messages.map((m, i) => (
           <div
             key={i}
-            className={`max-w-[90%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${
+            className={
               m.role === 'user'
-                ? 'mr-auto bg-blue-600 text-white'
-                : 'ml-auto bg-white border border-slate-200 text-slate-800'
-            }`}
+                ? 'max-w-[90%] mr-auto rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap bg-blue-600 text-white'
+                : 'max-w-[90%] ml-auto rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap bg-white border border-slate-200 text-slate-800'
+            }
           >
             {m.content}
             {m.imageUrl ? (
@@ -104,9 +104,7 @@ export default function BotPage() {
             ) : null}
           </div>
         ))}
-        {loading && (
-          <div className="text-xs text-slate-500">جاري الكتابة...</div>
-        )}
+        {loading ? <div className="text-xs text-slate-500">جاري الكتابة...</div> : null}
         <div ref={endRef} />
       </div>
 
@@ -117,15 +115,14 @@ export default function BotPage() {
             .map((m) => m.content)
             .join('\n\n---\n\n')}
           resultUrl={
-            messages.map((m) => m.imageUrl).filter(Boolean).pop() as
-              | string
-              | undefined
+            (messages.map((m) => m.imageUrl).filter(Boolean).pop() as string | undefined) ||
+            undefined
           }
           onUploaded={({ originalName, url }) => {
             setAttachName(originalName)
             setAttachUrl(url)
             setInput((v) =>
-              v ? `${v} [مرفق: ${originalName}]` : `[مرفق: ${originalName}] ${url}`
+              v ? v + ' [مرفق: ' + originalName + ']' : '[مرفق: ' + originalName + '] ' + url
             )
           }}
           labelUpload="رفع ملف"
