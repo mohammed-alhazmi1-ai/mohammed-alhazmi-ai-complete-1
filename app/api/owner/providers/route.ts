@@ -354,13 +354,13 @@ export async function POST(req: NextRequest) {
       if (p.keys?.[0]?.id) {
         await prisma.providerKey.update({
           where: { id: p.keys[0].id },
-          data: { lastTestAt: new Date(), lastTestOk: result.success },
+          data: { lastTestAt: new Date(), lastTestOk: Boolean((result as any)?.success ?? (result as any)?.ok) },
         })
       }
       await prisma.$disconnect()
       return NextResponse.json({
         ok: true,
-        success: result.success,
+        success: ((typeof result === 'object' && result && 'success' in result) ? (result as { success: boolean }).success : false),
         message: result.message,
       })
     }
