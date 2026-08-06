@@ -21,7 +21,7 @@ export default function SiteLogo({
         if (data.logoUrl) setLogo(data.logoUrl)
         if (data.siteName) setName(data.siteName)
       } catch {
-        /* */
+        /* ignore */
       }
     })()
   }, [])

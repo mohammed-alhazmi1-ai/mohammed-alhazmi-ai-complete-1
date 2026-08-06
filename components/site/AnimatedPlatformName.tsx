@@ -26,7 +26,7 @@ export default function AnimatedPlatformName({
         const data = await res.json()
         if (data.siteName) setName(data.siteName)
       } catch {
-        /* */
+        /* ignore */
       }
     })()
   }, [nameProp])
@@ -42,7 +42,6 @@ export default function AnimatedPlatformName({
 
   return (
     <div className={`relative w-full max-w-3xl mx-auto text-center ${className}`} dir="rtl">
-      {/* العلم اليمني متحرك */}
       <div className="yemen-flag-bar mb-3" aria-hidden>
         <div className="yemen-flag-track">
           <div className="flex h-full w-1/2">
@@ -57,12 +56,9 @@ export default function AnimatedPlatformName({
           </div>
         </div>
       </div>
-
       <h1 className={`font-black leading-tight ${sizeCls}`}>
         <span className="yemen-title-gradient">{name}</span>
       </h1>
-
-      {/* نجمة صغيرة ترمز للهوية */}
       <p className="mt-2 text-[11px] text-slate-400 tracking-widest">
         🇾🇪 اليمن · ذكاء اصطناعي عربي
       </p>
