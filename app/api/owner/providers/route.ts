@@ -213,7 +213,6 @@ export async function GET() {
       note: e?.message,
     })
   }
-}
 
 export async function POST(req: NextRequest) {
 
