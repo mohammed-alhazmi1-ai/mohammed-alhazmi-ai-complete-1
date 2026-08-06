@@ -84,7 +84,7 @@ function fromEnvFallback() {
           keyName: s.envKey,
           hasValue: Boolean(val),
           masked: mask(val),
-          lastTestOk: Boolean((k as any)?.lastTestOk ?? (key as any)?.lastTestOk ?? false),
+          lastTestOk: false,
         },
       ],
       models: [
@@ -118,7 +118,7 @@ async function listFromDb(prisma: any) {
       keyName: k.keyName,
       hasValue: Boolean(k.keyValue),
       masked: mask(k.keyValue || ''),
-      lastTestOk: Boolean((k as any)?.lastTestOk ?? (key as any)?.lastTestOk ?? false),
+      lastTestOk: Boolean(k?.lastTestOk),
     })),
     models: (p.models || []).map((m: any) => ({
       id: m.id,
@@ -374,13 +374,13 @@ export async function POST(req: NextRequest) {
       if (p.keys?.[0]?.id) {
         await prisma.providerKey.update({
           where: { id: p.keys[0].id },
-          data: { lastTestAt: new Date(), lastTestOk: Boolean((k as any)?.lastTestOk ?? (key as any)?.lastTestOk ?? false)},
+          data: { lastTestAt: new Date(), lastTestOk: normalizeTestResult(result).success },
         })
       }
       await prisma.$disconnect()
       return NextResponse.json({
         ok: true,
-        success: ((typeof result === 'object' && result && 'success' in result) ? (result as { success: boolean }).success : false),
+        success: normalizeTestResult(result).success,
         message: normalizeTestResult(result).message,
       })
     }
