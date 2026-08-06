@@ -5,6 +5,11 @@ import { randomBytes } from 'crypto'
 import { guardUpload, rateLimitIp } from '@/lib/upload-guard'
 import { logSecurityEvent } from '@/lib/security-log'
 
+function isRejected(g: import('@/lib/upload-guard').GuardResult): g is Extract<import('@/lib/upload-guard').GuardResult, { ok: false }> {
+  return g.ok === false
+}
+
+
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
@@ -59,7 +64,7 @@ export async function POST(req: NextRequest) {
       buffer: buf,
     })
 
-    if (!guard.ok) {
+    if (isRejected(guard)) {
       const typeMap: Record<string, any> = {
         path_traversal: 'path_traversal',
         dangerous_ext: 'malware_suspect',
