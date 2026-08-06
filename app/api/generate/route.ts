@@ -22,68 +22,55 @@ function mapType(raw: string): GenType {
   return 'chat'
 }
 
-export async function POST(req: NextRequest) {
-
-      // [موجه المزودين الذكي] توجيه الطلب حسب اختيار المستخدم الفعلي ومنع OpenAI
-      try {
-          const clonedReq = await req.clone().json();
-          const selectedProvider = (clonedReq.provider || clonedReq.model || clonedReq.selectedModel || "").toLowerCase();
-          const promptText = clonedReq.prompt || clonedReq.text || clonedReq.message || clonedReq.content || "مرحباً";
-
-          // إذا تم اختيار المزود أو كان الافتراضي ليس OpenAI
-          if (!selectedProvider.includes("openai") || selectedProvider.includes("gemini") || selectedProvider.includes("google") || selectedProvider.includes("huggingface") || selectedProvider.includes("replicate")) {
-              const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-              if (geminiKey) {
-                  const { GoogleGenerativeAI } = await import("@google/generative-ai");
-                  const genAI = new GoogleGenerativeAI(geminiKey);
-                  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-                  const res = await model.generateContent(promptText);
-                  const text = res.response.text();
-                  return new Response(JSON.stringify({ success: true, result: text, text: text, choices: [{ message: { content: text } }] }), { status: 200, headers: { "Content-Type": "application/json" } });
-              }
-          }
-      } catch (errRouter) {
-          console.error("Router error:", errRouter);
-      }
-        
-  // [تم الحقن] تخطي OpenAI إذا تم اختيار مزود آخر مؤقتاً لتجنب خطأ الرصيد
-  try { const clone = await req.clone().json(); if(clone.provider && clone.provider.toLowerCase() !== 'openai' && !clone.provider.toLowerCase().includes('gpt')) { return new Response(JSON.stringify({ success: true, result: 'تم استقبال الطلب بنجاح عبر ' + clone.provider + ' 🚀 (تحتاج فقط لربط الـ API الخاص به في الخلفية)', message: 'تم التحويل بنجاح' }), { status: 200, headers: { 'Content-Type': 'application/json' } }); } } catch(e) {
-      if (e?.message?.includes('credits remaining') || e?.status === 429 || e?.error?.code === 'insufficient_quota') { return new Response(JSON.stringify({ error: 'عذراً، رصيد مفتاح OpenAI قد نفد. يرجى اختيار مزود بديل مجاني من القائمة أو شحن رصيدك.', success: false }), { status: 402, headers: { 'Content-Type': 'application/json' } }); }
+function pickProvider(body: any): string {
+  const p = String(body.provider || body.selectedProvider || body.model || 'auto').toLowerCase()
+  if (p.includes('openai') || p.includes('gpt')) return 'auto'
+  if (p.includes('gemini') || p.includes('google')) return 'gemini'
+  if (p.includes('hugging') || p === 'hf') return 'huggingface'
+  if (p.includes('replicate')) return 'replicate'
+  return 'auto'
 }
 
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}))
-    const prompt = String(body.prompt || body.text || body.message || '').trim()
-    const type = mapType(String(body.type || body.service || body.serviceType || 'chat'))
-    const cost = COST[type] ?? 5
+    const prompt = String(
+      body.prompt || body.text || body.message || body.content || ''
+    ).trim()
+    const type = mapType(String(body.type || body.service || body.kind || 'chat'))
+    const provider = pickProvider(body)
+    const userId = body.userId ? String(body.userId) : undefined
+    const cost = COST[type] ?? 1
 
     if (!prompt) {
-      return NextResponse.json({ ok: false, error: 'اكتب طلباً أولاً' }, { status: 400 })
+      return NextResponse.json({ ok: false, success: false, error: 'الطلب فارغ' }, { status: 400 })
     }
 
-    // محاولة حفظ AiJob + خصم رصيد إن وُجد Prisma
-    let jobId: string | null = null
-    let creditsLeft: number | null = null
-    let userId = body.userId as string | undefined
+    let creditsLeft: number | undefined
+    let jobId: string | undefined
 
     try {
       const { PrismaClient } = await import('@prisma/client')
       const prisma = new PrismaClient()
 
-      // إن وُجد توكن supabase لاحقاً يمكن ربط المستخدم؛ هنا نحفظ إن أُمرر userId
       if (userId) {
         const wallet = await prisma.wallet.findUnique({ where: { userId } }).catch(() => null)
         if (wallet) {
           const total =
-            (wallet.paidCredits || 0) + (wallet.freeCredits || 0) + (wallet.referralCredits || 0)
+            (wallet.paidCredits || 0) +
+            (wallet.freeCredits || 0) +
+            (wallet.referralCredits || 0)
           if (total < cost) {
             await prisma.$disconnect()
             return NextResponse.json(
-              { ok: false, error: `رصيد غير كافٍ. المطلوب ${cost} REMO` },
+              {
+                ok: false,
+                success: false,
+                error: `رصيد غير كافٍ. المطلوب ${cost} REMO`,
+              },
               { status: 402 }
             )
           }
-          // خصم من free أولاً ثم paid
           let left = cost
           let free = wallet.freeCredits || 0
           let paid = wallet.paidCredits || 0
@@ -96,18 +83,6 @@ export async function POST(req: NextRequest) {
             data: { freeCredits: free, paidCredits: Math.max(0, paid) },
           })
           creditsLeft = free + Math.max(0, paid) + (wallet.referralCredits || 0)
-          try {
-            await prisma.walletTransaction.create({
-              data: {
-                userId,
-                type: 'debit',
-                amount: -cost,
-                description: `توليد ${type}`,
-              } as any,
-            })
-          } catch {
-            /* حقل description قد يختلف */
-          }
         }
 
         try {
@@ -117,17 +92,23 @@ export async function POST(req: NextRequest) {
               type,
               status: 'processing',
               prompt,
-              provider: 'pending',
+              provider: provider === 'auto' ? 'pending' : provider,
               creditsUsed: cost,
             } as any,
           })
           jobId = job.id
         } catch {
-          /* شكل AiJob قد يختلف */
+          /* */
         }
       }
 
-      const result = await generateRealtime({ type, prompt, userId })
+      const result = await generateRealtime({
+        type,
+        prompt,
+        userId,
+        provider,
+        model: body.model ? String(body.model) : undefined,
+      })
 
       if (jobId) {
         try {
@@ -141,53 +122,79 @@ export async function POST(req: NextRequest) {
             } as any,
           })
         } catch {
-          /* ignore */
+          /* */
         }
       }
 
       await prisma.$disconnect()
 
+      if (!result.ok) {
+        return NextResponse.json(
+          {
+            ok: false,
+            success: false,
+            error: result.error || 'فشل التوليد',
+            provider: result.provider,
+            model: result.model,
+            text: result.text,
+            creditsLeft,
+          },
+          { status: 502 }
+        )
+      }
+
       return NextResponse.json({
-        ok: result.ok,
+        ok: true,
+        success: true,
+        result: result.text || result.imageUrl,
+        text: result.text,
+        imageUrl: result.imageUrl,
+        provider: result.provider,
+        model: result.model,
         type,
         cost,
-        jobId,
         creditsLeft,
-        provider: result.provider,
-        model: result.model,
+        jobId,
+      })
+    } catch (dbErr: any) {
+      // بدون قاعدة بيانات — توليد فقط
+      const result = await generateRealtime({ type, prompt, provider })
+      if (!result.ok) {
+        return NextResponse.json(
+          {
+            ok: false,
+            success: false,
+            error: result.error || dbErr?.message,
+            provider: result.provider,
+          },
+          { status: 502 }
+        )
+      }
+      return NextResponse.json({
+        ok: true,
+        success: true,
+        result: result.text || result.imageUrl,
         text: result.text,
         imageUrl: result.imageUrl,
-        error: result.error,
-        unit: 'REMO',
-      })
-    } catch {
-      // بدون Prisma — توليد مباشر
-      const result = await generateRealtime({ type, prompt })
-      return NextResponse.json({
-        ok: result.ok,
+        provider: result.provider,
+        model: result.model,
         type,
         cost,
-        provider: result.provider,
-        model: result.model,
-        text: result.text,
-        imageUrl: result.imageUrl,
-        error: result.error,
-        unit: 'REMO',
       })
     }
   } catch (e: any) {
-      if (e?.message?.includes('credits remaining') || e?.status === 429 || e?.error?.code === 'insufficient_quota') { return new Response(JSON.stringify({ error: 'عذراً، رصيد مفتاح OpenAI قد نفد. يرجى اختيار مزود بديل مجاني من القائمة أو شحن رصيدك.', success: false }), { status: 402, headers: { 'Content-Type': 'application/json' } }); }
-
-    return NextResponse.json({ ok: false, error: e?.message || 'خطأ سيرفر' }, { status: 500 })
+    return NextResponse.json(
+      { ok: false, success: false, error: e?.message || 'خطأ الخادم' },
+      { status: 500 }
+    )
   }
 }
 
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    message: 'API التوليد الحقيقي',
-    providers: ['openai', 'gemini'],
-    types: ['chat', 'images', 'video', 'music', 'code'],
-    unit: 'REMO',
+    providers: ['gemini', 'huggingface', 'replicate'],
+    note: 'OpenAI معطّل. التوليد عبر Gemini / HF / Replicate',
+    types: ['chat', 'code', 'images', 'video', 'music'],
   })
 }
