@@ -213,7 +213,7 @@ export async function GET() {
       ok: true,
       providers: fromEnvFallback(),
       source: 'env',
-      note: 'من البيئة. اضغط إنشاء المزودين الافتراضيين لحفظهم في القاعدة.',
+      note: 'من البيئة. استخدم seed لحفظ المزودين في القاعدة.',
     })
   } catch (e: any) {
     return NextResponse.json({
@@ -233,8 +233,10 @@ export async function POST(req: NextRequest) {
 
     if (action === 'seed') {
       for (const s of SEED) {
-        const existing = await prisma.aiProvider.findFirst({ where: { slug: s.slug } }).catch(() => null)
-        let providerId = existing?.id
+        const existing = await prisma.aiProvider
+          .findFirst({ where: { slug: s.slug } })
+          .catch(() => null)
+        let providerId = existing?.id as string | undefined
         if (!existing) {
           const created = await prisma.aiProvider.create({
             data: {
