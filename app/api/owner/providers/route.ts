@@ -254,7 +254,7 @@ export async function POST(req: NextRequest) {
               modelId: s.defaultModel,
               displayName: s.defaultModel,
               isDefault: true,
-            },
+            } as any,
           })
         }
         const val = envVal(s.envKey)
@@ -318,7 +318,7 @@ export async function POST(req: NextRequest) {
             modelId: String(body.defaultModel),
             displayName: String(body.defaultModel),
             isDefault: true,
-          },
+          } as any,
         })
       }
       const providers = await listFromDb(prisma)
