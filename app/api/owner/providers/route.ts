@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+export const maxDuration = 30
+
 type ProviderTestResult = { success: boolean; message: string }
 
 function normalizeTestResult(result: unknown): ProviderTestResult {
@@ -11,17 +14,10 @@ function normalizeTestResult(result: unknown): ProviderTestResult {
     }
   }
   if (result instanceof Response) {
-    return {
-      success: result.ok,
-      message: result.ok ? `HTTP ${result.status}` : `HTTP ${result.status}`,
-    }
+    return { success: result.ok, message: `HTTP ${result.status}` }
   }
   return { success: false, message: 'نتيجة اختبار غير معروفة' }
 }
-
-
-export const dynamic = 'force-dynamic'
-export const maxDuration = 30
 
 type SeedProvider = {
   slug: string
@@ -34,10 +30,33 @@ type SeedProvider = {
 }
 
 const SEED: SeedProvider[] = [
-  { slug: 'openai', name: 'OpenAI', category: 'text', priority: 10, defaultModel: 'gpt-4o-mini', costPerUse: 5, envKey: 'OPENAI_API_KEY' },
-  { slug: 'gemini', name: 'Google Gemini', category: 'text', priority: 20, defaultModel: 'gemini-2.0-flash', costPerUse: 3, envKey: 'GEMINI_API_KEY' },
-  { slug: 'replicate', name: 'Replicate', category: 'image', priority: 30, defaultModel: 'black-forest-labs/flux-schnell', costPerUse: 15, envKey: 'REPLICATE_API_TOKEN' },
-  { slug: 'huggingface', name: 'Hugging Face', category: 'text', priority: 40, defaultModel: 'mistralai/Mistral-7B-Instruct-v0.2', costPerUse: 4, envKey: 'HUGGINGFACE_API_KEY' },
+  {
+    slug: 'gemini',
+    name: 'Google Gemini',
+    category: 'text',
+    priority: 10,
+    defaultModel: 'gemini-2.0-flash',
+    costPerUse: 3,
+    envKey: 'GEMINI_API_KEY',
+  },
+  {
+    slug: 'replicate',
+    name: 'Replicate',
+    category: 'image',
+    priority: 20,
+    defaultModel: 'black-forest-labs/flux-schnell',
+    costPerUse: 15,
+    envKey: 'REPLICATE_API_TOKEN',
+  },
+  {
+    slug: 'huggingface',
+    name: 'Hugging Face',
+    category: 'text',
+    priority: 30,
+    defaultModel: 'mistralai/Mistral-7B-Instruct-v0.2',
+    costPerUse: 4,
+    envKey: 'HUGGINGFACE_API_KEY',
+  },
 ]
 
 function envVal(name: string) {
@@ -51,6 +70,9 @@ function envVal(name: string) {
       process.env.HUGGING_FACE_HUB_TOKEN ||
       ''
     ).trim()
+  }
+  if (name === 'GEMINI_API_KEY') {
+    return (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim()
   }
   return (process.env[name] || '').trim()
 }
@@ -129,29 +151,26 @@ async function listFromDb(prisma: any) {
   }))
 }
 
-async function testProvider(slug: string, key: string) {
+async function testProvider(slug: string, key: string): Promise<ProviderTestResult> {
   if (!key) return { success: false, message: 'لا يوجد مفتاح' }
   try {
-    if (slug === 'openai') {
-      const res = await fetch('https://api.openai.com/v1/models', {
-        headers: { Authorization: `Bearer ${key}` },
-      })
-      return {
-        success: res.ok,
-        message: res.ok ? 'OpenAI متصل' : `OpenAI فشل HTTP ${res.status}`,
-      }
-    }
     if (slug === 'gemini') {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`
-      )
+      const model = 'gemini-2.0-flash'
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/\( {model}:generateContent?key= \){key}`
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: 'ping' }] }],
+        }),
+      })
       return {
         success: res.ok,
         message: res.ok ? 'Gemini متصل' : `Gemini فشل HTTP ${res.status}`,
       }
     }
     if (slug === 'replicate') {
-      const res = await fetch('https://api.replicate.com/v1/accounts/current', {
+      const res = await fetch('https://api.replicate.com/v1/account', {
         headers: { Authorization: `Token ${key}` },
       })
       return {
@@ -170,13 +189,9 @@ async function testProvider(slug: string, key: string) {
     }
     return { success: true, message: 'تم (بدون اختبار مخصص)' }
   } catch (e: any) {
-      if (e?.message?.includes('credits remaining') || e?.status === 429) {
-      return { success: false, message: 'رصيد غير كافٍ' }
-    }
-    }
-
     return { success: false, message: e?.message || 'فشل الاتصال' }
   }
+}
 
 export async function GET() {
   try {
@@ -198,14 +213,9 @@ export async function GET() {
       ok: true,
       providers: fromEnvFallback(),
       source: 'env',
-      note: 'اعرض من البيئة. اضغط «إنشاء المزودين الافتراضيين» لحفظهم في القاعدة.',
+      note: 'من البيئة. اضغط إنشاء المزودين الافتراضيين لحفظهم في القاعدة.',
     })
   } catch (e: any) {
-      if (e?.message?.includes('credits remaining') || e?.status === 429) {
-      return { success: false, message: 'رصيد غير كافٍ' }
-    }
-    }
-
     return NextResponse.json({
       ok: true,
       providers: fromEnvFallback(),
@@ -213,39 +223,9 @@ export async function GET() {
       note: e?.message,
     })
   }
-
-export async function POST(req: NextRequest) {
-
-      // [موجه المزودين الذكي] توجيه الطلب حسب اختيار المستخدم الفعلي ومنع OpenAI
-      try {
-          const clonedReq = await req.clone().json();
-          const selectedProvider = (clonedReq.provider || clonedReq.model || clonedReq.selectedModel || "").toLowerCase();
-          const promptText = clonedReq.prompt || clonedReq.text || clonedReq.message || clonedReq.content || "مرحباً";
-
-          // إذا تم اختيار المزود أو كان الافتراضي ليس OpenAI
-          if (!selectedProvider.includes("openai") || selectedProvider.includes("gemini") || selectedProvider.includes("google") || selectedProvider.includes("huggingface") || selectedProvider.includes("replicate")) {
-              const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-              if (geminiKey) {
-                  const { GoogleGenerativeAI } = await import("@google/generative-ai");
-                  const genAI = new GoogleGenerativeAI(geminiKey);
-                  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-                  const res = await model.generateContent(promptText);
-                  const text = res.response.text();
-                  return new Response(JSON.stringify({ success: true, result: text, text: text, choices: [{ message: { content: text } }] }), { status: 200, headers: { "Content-Type": "application/json" } });
-              }
-          }
-      } catch (errRouter) {
-          console.error("Router error:", errRouter);
-      }
-        
-  // [تم الحقن] تخطي OpenAI إذا تم اختيار مزود آخر مؤقتاً لتجنب خطأ الرصيد
-  try { const clone = await req.clone().json(); if(clone.provider && clone.provider.toLowerCase() !== 'openai' && !clone.provider.toLowerCase().includes('gpt')) { return new Response(JSON.stringify({ success: true, result: 'تم استقبال الطلب بنجاح عبر ' + clone.provider + ' 🚀 (تحتاج فقط لربط الـ API الخاص به في الخلفية)', message: 'تم التحويل بنجاح' }), { status: 200, headers: { 'Content-Type': 'application/json' } }); } } catch(e) {
-      if (e?.message?.includes('credits remaining') || e?.status === 429) {
-      return { success: false, message: 'رصيد غير كافٍ' }
-    }
-    }
 }
 
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}))
     const action = String(body.action || '')
@@ -253,46 +233,57 @@ export async function POST(req: NextRequest) {
 
     if (action === 'seed') {
       for (const s of SEED) {
-        const existing = await prisma.aiProvider.findUnique({ where: { slug: s.slug } }).catch(() => null)
-        if (existing) continue
-        const created = await prisma.aiProvider.create({
-          data: {
-            slug: s.slug,
-            name: s.name,
-            category: s.category,
-            isEnabled: Boolean(envVal(s.envKey)),
-            priority: s.priority,
-            defaultModel: s.defaultModel,
-            costPerUse: s.costPerUse,
-          },
-        })
-        const val = envVal(s.envKey)
-        if (val) {
-          await prisma.providerKey.create({
+        const existing = await prisma.aiProvider.findFirst({ where: { slug: s.slug } }).catch(() => null)
+        let providerId = existing?.id
+        if (!existing) {
+          const created = await prisma.aiProvider.create({
+            data: {
+              slug: s.slug,
+              name: s.name,
+              category: s.category,
+              isEnabled: Boolean(envVal(s.envKey)),
+              priority: s.priority,
+              defaultModel: s.defaultModel,
+              costPerUse: s.costPerUse,
+            },
+          })
+          providerId = created.id
+          await prisma.aiModel.create({
             data: {
               providerId: created.id,
-              keyName: s.envKey,
-              keyValue: val,
-              isActive: true,
+              modelId: s.defaultModel,
+              displayName: s.defaultModel,
+              isDefault: true,
             },
           })
         }
-        await prisma.aiModel.create({
-          data: {
-            providerId: created.id,
-            modelId: s.defaultModel,
-            displayName: s.defaultModel,
-            category: s.category,
-            isDefault: true,
-            isEnabled: true,
-          },
-        })
+        const val = envVal(s.envKey)
+        if (val && providerId) {
+          const keyRow = await prisma.providerKey.findFirst({
+            where: { providerId, keyName: s.envKey },
+          })
+          if (keyRow) {
+            await prisma.providerKey.update({
+              where: { id: keyRow.id },
+              data: { keyValue: val, isActive: true },
+            })
+          } else {
+            await prisma.providerKey.create({
+              data: {
+                providerId,
+                keyName: s.envKey,
+                keyValue: val,
+                isActive: true,
+              },
+            })
+          }
+        }
       }
       const providers = await listFromDb(prisma)
       await prisma.$disconnect()
       return NextResponse.json({
         ok: true,
-        message: 'تم إنشاء/تحديث المزودين الافتراضيين (OpenAI, Gemini, Replicate, Hugging Face)',
+        message: 'تم إنشاء/تحديث المزودين (Gemini, Replicate, Hugging Face)',
         providers,
       })
     }
@@ -326,7 +317,6 @@ export async function POST(req: NextRequest) {
             providerId: created.id,
             modelId: String(body.defaultModel),
             displayName: String(body.defaultModel),
-            category: String(body.category || 'text'),
             isDefault: true,
           },
         })
@@ -378,33 +368,32 @@ export async function POST(req: NextRequest) {
         if (seed) key = envVal(seed.envKey)
       }
       const result = await testProvider(p.slug, key)
+      const testOut = normalizeTestResult(result)
       if (p.keys?.[0]?.id) {
         await prisma.providerKey.update({
           where: { id: p.keys[0].id },
-          data: { lastTestAt: new Date(), lastTestOk: normalizeTestResult(result).success },
+          data: {
+            lastTestAt: new Date(),
+            lastTestOk: testOut.success,
+          },
         })
       }
       await prisma.$disconnect()
       return NextResponse.json({
         ok: true,
-        success: normalizeTestResult(result).success,
-        message: normalizeTestResult(result).message,
+        success: testOut.success,
+        message: testOut.message,
       })
     }
 
     await prisma.$disconnect()
     return NextResponse.json({ ok: false, error: 'إجراء غير معروف' }, { status: 400 })
   } catch (e: any) {
-      if (e?.message?.includes('credits remaining') || e?.status === 429) {
-      return { success: false, message: 'رصيد غير كافٍ' }
-    }
-    }
-
     return NextResponse.json(
       {
         ok: false,
         error: e?.message || 'خطأ',
-        hint: 'إن فشل Prisma: اضغط seed بعد db push، أو ستُعرض المزودون من البيئة',
+        hint: 'إن فشل Prisma: نفّذ db push ثم seed من لوحة المالك',
       },
       { status: 500 }
     )
