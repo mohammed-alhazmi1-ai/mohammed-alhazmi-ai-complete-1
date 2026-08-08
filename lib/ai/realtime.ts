@@ -66,40 +66,61 @@ function orderProviders(
 // ─── Gemini نص ───────────────────────────────────────────
 async function geminiChat(prompt: string, model = 'gemini-2.0-flash'): Promise<GenResult> {
   const key = geminiKey()
-  if (!key) return { ok: false, provider: 'gemini', model, error: 'GEMINI_API_KEY مفقود' }
+  if (!key) {
+    return { ok: false, provider: 'gemini', model, error: 'GEMINI_API_KEY مفقود' }
+  }
 
-  const models = [model, 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest']
-  let lastErr = 'فشل Gemini'
-
+  // نماذج شائعة — إن فشل واحد نجرّب التالي (يتفادى 404 NotFound)
+  const models = [
+    model,
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-flash-latest',
+    'gemini-flash-latest',
+  ]
+  // إزالة التكرار مع الحفاظ على الترتيب
+  const tried: string[] = []
   for (const m of models) {
+    if (!m || tried.includes(m)) continue
+    tried.push(m)
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/\( {m}:generateContent?key= \){key}`
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`
       const res = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-goog-api-key': key,
         },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        lastErr = data?.error?.message || `Gemini HTTP ${res.status}`
-        continue
+        const msg = data?.error?.message || `Gemini HTTP ${res.status}`
+        // 404 نموذج → جرّب التالي
+        if (res.status === 404) continue
+        return { ok: false, provider: 'gemini', model: m, error: msg, raw: data }
       }
       const text =
         data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('\n') || ''
       if (!text.trim()) {
-        lastErr = 'رد فارغ من Gemini'
         continue
       }
       return { ok: true, provider: 'gemini', model: m, text, raw: data }
     } catch (e: any) {
-      lastErr = e?.message || 'خطأ Gemini'
+      // تابع للنموذج التالي
+      continue
     }
   }
-  return { ok: false, provider: 'gemini', model, error: lastErr }
+  return {
+    ok: false,
+    provider: 'gemini',
+    model,
+    error: 'تعذر Gemini (تحقق من المفتاح AQ. والنموذج)',
+  }
 }
+
 
 /** محاولة صور عبر Gemini (Imagen إن توفر) وإلا وصف نصي */
 async function geminiImages(prompt: string): Promise<GenResult> {
@@ -109,7 +130,7 @@ async function geminiImages(prompt: string): Promise<GenResult> {
 
   // بعض المشاريع تدعم predict لـ imagen
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/\( {model}:predict?key= \){key}`
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict`
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

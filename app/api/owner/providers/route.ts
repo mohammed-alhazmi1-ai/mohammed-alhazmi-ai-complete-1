@@ -155,22 +155,33 @@ async function testProvider(slug: string, key: string): Promise<ProviderTestResu
   if (!key) return { success: false, message: 'لا يوجد مفتاح' }
   try {
     if (slug === 'gemini') {
-      const model = 'gemini-2.0-flash'
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/\( {model}:generateContent?key= \){key}`
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': key,
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: 'ping' }] }],
-        }),
-      })
-      return {
-        success: res.ok,
-        message: res.ok ? 'Gemini متصل' : `Gemini فشل HTTP ${res.status}`,
+      const keyTrim = key.trim()
+      const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-flash-latest']
+      let lastMsg = 'فشل Gemini'
+      for (const model of models) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': keyTrim,
+          },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: 'ping' }] }],
+          }),
+        })
+        if (res.ok) {
+          return { success: true, message: `Gemini متصل (${model})` }
+        }
+        const data = await res.json().catch(() => ({}))
+        lastMsg = data?.error?.message || `Gemini فشل HTTP ${res.status}`
+        if (res.status === 404) continue
+        // مفتاح غير صالح — لا داعي لتجربة كل النماذج
+        if (res.status === 400 && /api key/i.test(lastMsg)) {
+          return { success: false, message: lastMsg }
+        }
       }
+      return { success: false, message: lastMsg }
     }
     if (slug === 'replicate') {
       const res = await fetch('https://api.replicate.com/v1/account', {
