@@ -7,6 +7,7 @@ import AnimatedPlatformName from '@/components/site/AnimatedPlatformName'
 import SiteLogo from '@/components/site/SiteLogo'
 import SocialButtons from '@/components/site/SocialButtons'
 import HomeAdSense from '@/components/site/HomeAdSense'
+import HilltopBanner from '@/components/site/HilltopBanner'
 
 const HOME_TICKER = [
   'مرحباً بكم في منصة محمد الحزمي للذكاء الاصطناعي',
@@ -119,11 +120,17 @@ export default function HomePage() {
           </div>
 
           {/* مكان إعلان فوق الخدمات */}
+          <div className="w-full mb-2"><HilltopBanner /></div>
           <div className="w-full pt-6 space-y-2">
             <HomeAdSense slot="home" />
             <div className="rounded-xl border border-dashed border-slate-700/80 bg-slate-900/30 px-3 py-2 text-[11px] text-slate-500">
               مساحة إعلان — من لوحة المالك → الإعلانات (AdSense) لعرض البنر هنا
             </div>
+          </div>
+
+          {/* بنر HilltopAds فوق الخدمات */}
+          <div className="w-full pt-6">
+            <HilltopBanner />
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-10 text-sm">
