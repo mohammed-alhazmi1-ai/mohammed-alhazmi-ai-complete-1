@@ -342,6 +342,83 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, providers })
     }
 
+
+    if (action === 'update') {
+      const id = String(body.id || body.providerId || '')
+      if (!id) {
+        await prisma.$disconnect()
+        return NextResponse.json({ ok: false, error: 'معرف المزود مطلوب' }, { status: 400 })
+      }
+      const data: any = {}
+      if (body.name != null) data.name = String(body.name)
+      if (body.category != null) data.category = String(body.category)
+      if (body.priority != null) data.priority = Number(body.priority)
+      if (body.costPerUse != null) data.costPerUse = Number(body.costPerUse)
+      if (body.defaultModel != null) data.defaultModel = String(body.defaultModel) || null
+      if (body.isEnabled != null) data.isEnabled = Boolean(body.isEnabled)
+      if (body.slug != null) {
+        const slug = String(body.slug).toLowerCase().trim()
+        if (slug) data.slug = slug
+      }
+      if (!Object.keys(data).length) {
+        await prisma.$disconnect()
+        return NextResponse.json({ ok: false, error: 'لا توجد حقول للتحديث' }, { status: 400 })
+      }
+      try {
+        await prisma.aiProvider.update({ where: { id }, data })
+      } catch (e: any) {
+        await prisma.$disconnect()
+        return NextResponse.json(
+          { ok: false, error: e?.message || 'تعذر التحديث (قد يكون المزود من البيئة فقط — نفّذ seed أولاً)' },
+          { status: 400 }
+        )
+      }
+      // تحديث النموذج الافتراضي في AiModel إن وُجد
+      if (data.defaultModel) {
+        try {
+          const models = await prisma.aiModel.findMany({ where: { providerId: id } })
+          if (models.length) {
+            for (const m of models) {
+              await prisma.aiModel.update({
+                where: { id: m.id },
+                data: {
+                  isDefault: m.modelId === data.defaultModel,
+                  ...(m.modelId === data.defaultModel
+                    ? { displayName: data.defaultModel }
+                    : {}),
+                } as any,
+              })
+            }
+            const has = models.some((m: any) => m.modelId === data.defaultModel)
+            if (!has) {
+              await prisma.aiModel.create({
+                data: {
+                  providerId: id,
+                  modelId: data.defaultModel,
+                  displayName: data.defaultModel,
+                  isDefault: true,
+                } as any,
+              })
+            }
+          } else {
+            await prisma.aiModel.create({
+              data: {
+                providerId: id,
+                modelId: data.defaultModel,
+                displayName: data.defaultModel,
+                isDefault: true,
+              } as any,
+            })
+          }
+        } catch {
+          /* تجاهل اختلاف مخطط AiModel */
+        }
+      }
+      const providers = await listFromDb(prisma)
+      await prisma.$disconnect()
+      return NextResponse.json({ ok: true, message: 'تم حفظ بيانات المزود', providers })
+    }
+
     if (action === 'set-key') {
       const providerId = String(body.providerId)
       const keyName = String(body.keyName || 'API_KEY')

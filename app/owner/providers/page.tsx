@@ -39,6 +39,16 @@ export default function ProvidersPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [testing, setTesting] = useState<string | null>(null)
   const [keyForm, setKeyForm] = useState<Record<string, string>>({})
+  const [editId, setEditId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({
+    name: '',
+    slug: '',
+    category: 'text',
+    priority: 50,
+    defaultModel: '',
+    costPerUse: 5,
+    isEnabled: true,
+  })
   const [form, setForm] = useState({
     name: '',
     slug: '',
@@ -313,7 +323,133 @@ export default function ProvidersPage() {
                         {m.displayName}
                       </span>
                     ))}
-                  </div>
+    
+                {/* تعديل بيانات المزود */}
+                <div className="mt-3 pt-3 border-t border-slate-800">
+                  {editId === p.id ? (
+                    <div className="space-y-2 text-right">
+                      <p className="text-xs font-bold text-slate-300">تعديل بيانات المزود</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input
+                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs"
+                          placeholder="الاسم"
+                          value={editForm.name}
+                          onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        />
+                        <input
+                          dir="ltr"
+                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono"
+                          placeholder="slug"
+                          value={editForm.slug}
+                          onChange={(e) => setEditForm({ ...editForm, slug: e.target.value })}
+                        />
+                        <select
+                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs"
+                          value={editForm.category}
+                          onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                        >
+                          <option value="text">text</option>
+                          <option value="image">image</option>
+                          <option value="video">video</option>
+                          <option value="music">music</option>
+                          <option value="multimodal">multimodal</option>
+                          <option value="code">code</option>
+                        </select>
+                        <input
+                          type="number"
+                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs"
+                          placeholder="الأولوية"
+                          value={editForm.priority}
+                          onChange={(e) =>
+                            setEditForm({ ...editForm, priority: Number(e.target.value) || 0 })
+                          }
+                        />
+                        <input
+                          dir="ltr"
+                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono sm:col-span-2"
+                          placeholder="النموذج الافتراضي"
+                          value={editForm.defaultModel}
+                          onChange={(e) => setEditForm({ ...editForm, defaultModel: e.target.value })}
+                        />
+                        <input
+                          type="number"
+                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs"
+                          placeholder="التكلفة REMO"
+                          value={editForm.costPerUse}
+                          onChange={(e) =>
+                            setEditForm({ ...editForm, costPerUse: Number(e.target.value) || 0 })
+                          }
+                        />
+                        <label className="flex items-center gap-2 text-xs px-1">
+                          <input
+                            type="checkbox"
+                            checked={editForm.isEnabled}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, isEnabled: e.target.checked })
+                            }
+                          />
+                          مفعّل
+                        </label>
+                      </div>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <button
+                          type="button"
+                          className="px-3 py-2 rounded-xl bg-emerald-600 text-xs font-bold"
+                          onClick={async () => {
+                            try {
+                              await post({
+                                action: 'update',
+                                id: p.id,
+                                name: editForm.name,
+                                slug: editForm.slug,
+                                category: editForm.category,
+                                priority: editForm.priority,
+                                defaultModel: editForm.defaultModel,
+                                costPerUse: editForm.costPerUse,
+                                isEnabled: editForm.isEnabled,
+                              })
+                              setEditId(null)
+                              setMsg('تم حفظ بيانات المزود')
+                              await load()
+                            } catch (err: any) {
+                              setMsg(err.message)
+                            }
+                          }}
+                        >
+                          حفظ التعديلات
+                        </button>
+                        <button
+                          type="button"
+                          className="px-3 py-2 rounded-xl bg-slate-800 text-xs"
+                          onClick={() => setEditId(null)}
+                        >
+                          إلغاء
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="px-3 py-1.5 rounded-xl border border-slate-700 text-xs text-slate-300 hover:border-blue-600"
+                      onClick={() => {
+                        setEditId(p.id)
+                        setEditForm({
+                          name: p.name || '',
+                          slug: p.slug || '',
+                          category: p.category || 'text',
+                          priority: p.priority ?? 50,
+                          defaultModel: p.defaultModel || '',
+                          costPerUse: p.costPerUse ?? 5,
+                          isEnabled: !!p.isEnabled,
+                        })
+                      }}
+                    >
+                      تعديل البيانات
+                    </button>
+                  )}
+                </div>
+
+              </div>
                 )}
               </div>
             )
