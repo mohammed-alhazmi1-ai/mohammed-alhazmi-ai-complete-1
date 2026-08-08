@@ -159,7 +159,10 @@ async function testProvider(slug: string, key: string): Promise<ProviderTestResu
       const url = `https://generativelanguage.googleapis.com/v1beta/models/\( {model}:generateContent?key= \){key}`
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': key,
+        },
         body: JSON.stringify({
           contents: [{ parts: [{ text: 'ping' }] }],
         }),

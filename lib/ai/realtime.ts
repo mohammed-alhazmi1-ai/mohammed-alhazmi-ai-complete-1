@@ -76,7 +76,10 @@ async function geminiChat(prompt: string, model = 'gemini-2.0-flash'): Promise<G
       const url = `https://generativelanguage.googleapis.com/v1beta/models/\( {m}:generateContent?key= \){key}`
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': key,
+        },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
       })
       const data = await res.json().catch(() => ({}))
