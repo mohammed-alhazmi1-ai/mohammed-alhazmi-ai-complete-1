@@ -1,273 +1,341 @@
-'use client';
-import FileActions from '@/components/dashboard/FileActions';
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useLanguage } from '@/lib/i18n/LanguageContext';
-import { ALL_TEMPLATES, type ServiceKey, type Template } from '@/lib/templates';
-import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
-import { getSupabase } from '@/lib/supabase';
+'use client'
 
-const supabase = getSupabase();
+import { useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
+
+type Msg = {
+  id: string
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  imageUrl?: string
+  provider?: string
+  model?: string
+  cost?: number
+}
+
+type ProviderOpt = { slug: string; name: string }
 
 const SERVICE_META: Record<
-  ServiceKey,
-  {
-    icon: string;
-    titleKey: 'images' | 'video' | 'music' | 'code' | 'chat';
-    color: string;
-    executes: boolean;
-    defaultCost: number;
-  }
+  string,
+  { title: string; icon: string; color: string; cost: number; type: string }
 > = {
-  images: { icon: '🖼️', titleKey: 'images', color: 'from-blue-600/20 border-blue-800/40', executes: true, defaultCost: 15 },
-  video: { icon: '🎬', titleKey: 'video', color: 'from-purple-600/20 border-purple-800/40', executes: true, defaultCost: 25 },
-  music: { icon: '🎵', titleKey: 'music', color: 'from-emerald-600/20 border-emerald-800/40', executes: true, defaultCost: 20 },
-  code: { icon: '💻', titleKey: 'code', color: 'from-amber-600/20 border-amber-800/40', executes: true, defaultCost: 5 },
-  chat: { icon: '🤖', titleKey: 'chat', color: 'from-rose-600/20 border-rose-800/40', executes: true, defaultCost: 5 },
-};
+  images: { title: 'الصور', icon: '🖼️', color: 'from-pink-950/40 to-slate-950', cost: 20, type: 'images' },
+  video: { title: 'الفيديو', icon: '🎬', color: 'from-violet-950/40 to-slate-950', cost: 40, type: 'video' },
+  music: { title: 'الموسيقى', icon: '🎵', color: 'from-emerald-950/40 to-slate-950', cost: 30, type: 'music' },
+  code: { title: 'البرمجة', icon: '💻', color: 'from-sky-950/40 to-slate-950', cost: 10, type: 'code' },
+  chat: { title: 'الدردشة', icon: '💬', color: 'from-blue-950/40 to-slate-950', cost: 5, type: 'chat' },
+  bot: { title: 'المساعد', icon: '🤖', color: 'from-amber-950/40 to-slate-950', cost: 5, type: 'chat' },
+  'text-generator': { title: 'توليد النصوص', icon: '✍️', color: 'from-slate-900 to-slate-950', cost: 5, type: 'chat' },
+}
 
-type ProviderOpt = { slug: string; name: string; defaultModel: string | null; models: string[] };
+const TEMPLATES: Record<string, { id: string; title: string; prompt: string; icon: string }[]> = {
+  images: [
+    { id: '1', title: 'شعار', icon: '✨', prompt: 'صمّم شعاراً احترافياً بسيطاً لمنصة ذكاء اصطناعي عربية باسم منصة محمد الحزمي' },
+    { id: '2', title: 'صورة منتج', icon: '📦', prompt: 'صورة إعلانية احترافية لمنتج على خلفية نظيفة بإضاءة استوديو' },
+    { id: '3', title: 'بورتريه', icon: '👤', prompt: 'بورتريه احترافي لشخص بإضاءة سينمائية وخلفية ناعمة' },
+  ],
+  music: [
+    { id: '1', title: 'شيلة', icon: '🥁', prompt: 'اكتب كلمات وإيقاع لشيلة حماسية عن الإنجاز والفخر' },
+    { id: '2', title: 'زفة', icon: '💍', prompt: 'وصف موسيقي لزفة عروس هادئة مع آلات شرقية' },
+  ],
+  video: [
+    { id: '1', title: 'إعلان قصير', icon: '📱', prompt: 'سيناريو فيديو إعلاني 15 ثانية لمنتج تقني' },
+  ],
+  code: [
+    { id: '1', title: 'صفحة هبوط', icon: '🌐', prompt: 'اكتب كود HTML/CSS لصفحة هبوط بسيطة بالعربية' },
+  ],
+  chat: [
+    { id: '1', title: 'شرح مبسّط', icon: '📚', prompt: 'اشرح لي بأسلوب بسيط:' },
+  ],
+  bot: [
+    { id: '1', title: 'مساعدة', icon: '🤝', prompt: 'ساعدني في:' },
+  ],
+  'text-generator': [
+    { id: '1', title: 'مقال', icon: '📝', prompt: 'اكتب مقالاً قصيراً عن:' },
+  ],
+}
 
-export default function ServiceWorkspace({ service }: { service: ServiceKey }) {
-  const { lang, t, dir } = useLanguage();
-  const meta = SERVICE_META[service];
-  const templates = ALL_TEMPLATES[service];
-  const [selected, setSelected] = useState<Template | null>(null);
-  const [prompt, setPrompt] = useState('');
-  const [result, setResult] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [userEmail, setUserEmail] = useState('');
-  const [creditsLeft, setREMOsLeft] = useState<number | null>(null);
-  const [providers, setProviders] = useState<ProviderOpt[]>([]);
-  const [provider, setProvider] = useState('');
-  const [metaInfo, setMetaInfo] = useState('');
-  const [lastCost, setLastCost] = useState<number | null>(null);
-  const [cost, setCost] = useState(meta.defaultCost);
-  const [attachedName, setAttachedName] = useState('');
-  const [attachedDataUrl, setAttachedDataUrl] = useState('');
-  const [resultUrl, setResultUrl] = useState<string | null>(null);
+function uid() {
+  return Math.random().toString(36).slice(2, 10)
+}
+
+export default function ServiceWorkspace({ service }: { service: string }) {
+  const meta = SERVICE_META[service] || SERVICE_META.chat
+  const templates = TEMPLATES[service] || TEMPLATES.chat
+
+  const [messages, setMessages] = useState<Msg[]>([])
+  const [input, setInput] = useState('')
+  const [provider, setProvider] = useState('auto')
+  const [providers, setProviders] = useState<ProviderOpt[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.email) {
-        window.location.href = '/login';
-        return;
-      }
-      setUserEmail(session.user.email);
+    ;(async () => {
       try {
-        const res = await fetch('/api/user/me', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: session.user.email }),
-        });
-        const data = await res.json();
-        if (typeof data.credits === 'number') setREMOsLeft(data.credits);
-      } catch {}
-      try {
-        const pr = await fetch('/api/providers');
-        const pdata = await pr.json();
-        const list: ProviderOpt[] = pdata.providers || [];
-        setProviders(list);
-        if (list.length) setProvider(list[0].slug);
-      } catch {}
-      try {
-        const cr = await fetch('/api/service-cost?service=' + service);
-        const cd = await cr.json();
-        if (typeof cd.cost === 'number') setCost(cd.cost);
+        const res = await fetch('/api/providers', { cache: 'no-store' })
+        const data = await res.json().catch(() => ({}))
+        const list = Array.isArray(data.providers)
+          ? data.providers
+          : Array.isArray(data)
+            ? data
+            : []
+        const opts = list
+          .filter((p: any) => p && (p.slug || p.id))
+          .map((p: any) => ({
+            slug: String(p.slug || p.id),
+            name: String(p.name || p.slug || p.id),
+          }))
+        if (opts.length) setProviders(opts)
+        else {
+          setProviders([
+            { slug: 'gemini', name: 'Gemini' },
+            { slug: 'replicate', name: 'Replicate' },
+            { slug: 'huggingface', name: 'Hugging Face' },
+          ])
+        }
       } catch {
-        setCost(meta.defaultCost);
+        setProviders([
+          { slug: 'gemini', name: 'Gemini' },
+          { slug: 'replicate', name: 'Replicate' },
+          { slug: 'huggingface', name: 'Hugging Face' },
+        ])
       }
-    })();
-  }, [service, meta.defaultCost]);
+    })()
+  }, [])
 
-  const pickTemplate = (tpl: Template) => {
-    setSelected(tpl);
-    setPrompt(lang === 'ar' ? tpl.promptAr : tpl.promptEn);
-    setResult('');
-    setResultUrl(null);
-    setError('');
-    setMetaInfo('');
-    setLastCost(null);
-  };
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, loading])
 
-  const buildPromptForService = (userPrompt: string) => {
-    if (service === 'images') {
-      return `أنت مساعد تصميم صور بالذكاء الاصطناعي. اكتب وصفاً تفصيلياً جاهزاً لمولد الصور (prompt إنجليزي احترافي) + شرح عربي قصير، لطلب:\n${userPrompt}`;
-    }
-    if (service === 'video') {
-      return `أنت مخرج فيديو بالذكاء الاصطناعي. قدّم سيناريو مشاهد + نص تعليق + مدة، لطلب:\n${userPrompt}`;
-    }
-    if (service === 'music') {
-      return `أنت منتج موسيقي. اكتب كلمات/هيكل أغنية أو شيلة أو زفة مع وصف اللحن، لطلب:\n${userPrompt}`;
-    }
-    if (service === 'code') {
-      return `أنت مطور محترف. اكتب الكود كاملاً مع شرح مختصر:\n${userPrompt}`;
-    }
-    return userPrompt;
-  };
+  const costLabel = useMemo(() => meta.cost, [meta.cost])
 
-  const handleGenerate = async () => {
-    if (!prompt.trim()) {
-      setError(lang === 'ar' ? 'اكتب أو اختر قالباً أولاً' : 'Write or pick a template first');
-      return;
-    }
-    if (creditsLeft !== null && creditsLeft < cost) {
-      setError(
-        lang === 'ar'
-          ? `رصيد غير كافٍ. المطلوب ${cost} والمتاح ${creditsLeft}`
-          : `Insufficient credits. Need ${cost}, have ${creditsLeft}`
-      );
-      return;
-    }
-    setLoading(true);
-    setError('');
-    setResult('');
-    setMetaInfo('');
-    setLastCost(null);
+  async function send(text?: string) {
+    const prompt = (text ?? input).trim()
+    if (!prompt || loading) return
+    setError('')
+    setInput('')
+    const userMsg: Msg = { id: uid(), role: 'user', content: prompt }
+    setMessages((m) => [...m, userMsg])
+    setLoading(true)
     try {
+      // سياق المحادثة السابق (آخر ردود) لتحسين الاستمرار
+      const history = [...messages, userMsg]
+        .slice(-8)
+        .map((m) => (m.role === 'user' ? 'المستخدم: ' : 'المساعد: ') + m.content)
+        .join('\n')
+      const fullPrompt =
+        history.length > prompt.length + 10
+          ? `المحادثة السابقة:\n${history}\n\nالرد على آخر رسالة للمستخدم فقط بشكل مفيد.`
+          : prompt
+
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          prompt: buildPromptForService(prompt) + (attachedName ? `\n\n[مرفق: ${attachedName}]` : ''),
-          attachment: attachedDataUrl || undefined,
-          attachmentName: attachedName || undefined,
-          type: service,
-          service: service,
-          serviceType: service,
-          email: userEmail,
-          provider: provider || undefined,
-          serviceCost: cost,
+          prompt: fullPrompt,
+          type: meta.type,
+          provider: provider === 'auto' ? undefined : provider,
+          service,
         }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.ok === false) {
-        throw new Error(data.error || data.text || 'فشل التوليد');
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || data.ok === false || data.success === false) {
+        const err =
+          data.error ||
+          data.message ||
+          (typeof data.text === 'string' && data.text) ||
+          'فشل التوليد'
+        setError(String(err))
+        setMessages((m) => [
+          ...m,
+          {
+            id: uid(),
+            role: 'assistant',
+            content: String(err),
+            provider: data.provider,
+            model: data.model,
+          },
+        ])
+        return
       }
-      // توافق مع API: text | result | imageUrl
-      let out = data.text || data.result || '';
-      if (data.imageUrl) {
-        out = (out ? out + '\n\n' : '') + '🖼️ صورة:\n' + data.imageUrl;
-      }
-      if (!out && data.error) out = data.error;
-      setResultUrl(data.imageUrl || null);
-      setResult(out || (lang === 'ar' ? 'اكتمل بدون نص.' : 'Done (empty text).'));
-      if (typeof data.creditsLeft === 'number') setREMOsLeft(data.creditsLeft);
-      else if (typeof data.creditsRemaining === 'number') setREMOsLeft(data.creditsRemaining);
-      if (typeof data.cost === 'number') setLastCost(data.cost);
-      else if (typeof data.creditsUsed === 'number') setLastCost(data.creditsUsed);
-      setMetaInfo(
-        [
-          data.provider || provider,
-          data.model,
-          data.usedFallback ? 'Fallback' : null,
-          data.jobId ? `طلب #${String(data.jobId).slice(0, 8)}` : null,
-        ]
-          .filter(Boolean)
-          .join(' · ')
-      );
+      const out =
+        data.text ||
+        data.result ||
+        (data.imageUrl ? 'تم توليد صورة.' : '') ||
+        'تم'
+      setMessages((m) => [
+        ...m,
+        {
+          id: uid(),
+          role: 'assistant',
+          content: String(out),
+          imageUrl: data.imageUrl || data.url || undefined,
+          provider: data.provider,
+          model: data.model,
+          cost: data.cost ?? meta.cost,
+        },
+      ])
     } catch (e: any) {
-      setError(e.message || 'Failed');
+      setError(e?.message || 'خطأ شبكة')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
+
+  function useTemplate(prompt: string) {
+    setInput(prompt)
+  }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100" dir={dir}>
-      <header className="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-40 backdrop-blur">
-        <div className="max-w-6xl mx-auto px-4 w-full py-3 flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="text-xs text-slate-400 hover:text-white">← {t('back')}</Link>
-            <span className="text-xl">{meta.icon}</span>
-            <h1 className="font-bold text-white text-sm sm:text-base">{t(meta.titleKey)}</h1>
+    <div className="min-h-[100dvh] bg-slate-950 text-slate-100 flex flex-col" dir="rtl">
+      {/* شريط علوي */}
+      <header className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
+        <div className="max-w-3xl mx-auto px-3 py-2.5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Link href="/dashboard" className="text-xs text-slate-400 hover:text-white shrink-0">
+              ← رجوع
+            </Link>
+            <span className="text-lg">{meta.icon}</span>
+            <h1 className="font-bold text-sm truncate">{meta.title}</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`text-xs font-bold px-3 py-1.5 rounded-lg border ${creditsLeft !== null && creditsLeft < cost ? 'text-red-400 bg-red-950/40 border-red-900/50' : 'text-emerald-400 bg-emerald-950/40 border-emerald-900/50'}`}>
-              {lang === 'ar' ? 'الرصيد:' : 'Balance:'} {creditsLeft === null ? '...' : creditsLeft} REMO
-            </span>
-            <Link href="/dashboard/jobs" className="text-[10px] text-slate-400 hover:text-white px-2 py-1 rounded-lg border border-slate-800">السجل</Link>
-            <LanguageSwitcher />
+          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+            <select
+              value={provider}
+              onChange={(e) => setProvider(e.target.value)}
+              className="text-[11px] rounded-lg bg-slate-900 border border-slate-700 px-2 py-1 max-w-[140px]"
+            >
+              <option value="auto">تلقائي</option>
+              {providers.map((p) => (
+                <option key={p.slug} value={p.slug}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            <span className="text-[10px] text-amber-400/90 whitespace-nowrap">\~{costLabel} REMO</span>
           </div>
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
-        <div className="rounded-2xl border border-amber-900/40 bg-amber-950/20 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm text-amber-200">
-            {lang === 'ar' ? 'تكلفة هذا الطلب:' : 'Cost:'}{' '}
-            <strong className="text-amber-400 text-lg">{cost} REMO</strong>
-          </p>
-          <p className="text-xs text-slate-400">
-            {lang === 'ar' ? 'يُخصم بعد نجاح التوليد ويُحفظ الطلب' : 'Deducted after success; request is saved'}
-          </p>
-        </div>
-
-        <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-          <label className="block text-xs text-slate-400 mb-2">{lang === 'ar' ? 'اختر مزود الذكاء الاصطناعي' : 'Choose AI Provider'}</label>
-          <div className="flex flex-wrap gap-2">
-            {providers.length === 0 ? (
-              <span className="text-xs text-slate-500">{lang === 'ar' ? 'لا يوجد مزود — أضف مفاتيح AI في .env' : 'No providers'}</span>
-            ) : (
-              providers.map((p) => (
-                <button key={p.slug} type="button" onClick={() => setProvider(p.slug)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold border transition ${provider === p.slug ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-950 border-slate-700 text-slate-300'}`}>
-                  {p.name}
-                </button>
-              ))
-            )}
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-lg font-bold text-white mb-1">{t('chooseTemplate')}</h2>
-          <p className="text-slate-500 text-xs mb-4">{t('customizePrompt')}</p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {/* قوالب سريعة */}
+      {messages.length === 0 && (
+        <div className="max-w-3xl mx-auto w-full px-3 pt-4">
+          <p className="text-xs text-slate-500 mb-2">قوالب سريعة</p>
+          <div className="flex gap-2 overflow-x-auto pb-2">
             {templates.map((tpl) => (
-              <button key={tpl.id} type="button" onClick={() => pickTemplate(tpl)}
-                className={`text-right rounded-2xl border p-4 transition-all ${selected?.id === tpl.id ? 'border-blue-500 bg-blue-950/40' : 'border-slate-800 bg-slate-900 hover:border-slate-600'}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">{tpl.icon || '✨'}</span>
-                  <span className="font-bold text-white text-sm">{lang === 'ar' ? tpl.titleAr : tpl.titleEn}</span>
-                </div>
-                <p className="text-[11px] text-slate-500 line-clamp-2">{(lang === 'ar' ? tpl.promptAr : tpl.promptEn).slice(0, 80)}…</p>
+              <button
+                key={tpl.id}
+                type="button"
+                onClick={() => useTemplate(tpl.prompt)}
+                className="shrink-0 rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-right hover:border-blue-600"
+              >
+                <span className="text-sm">{tpl.icon} </span>
+                <span className="text-xs font-bold">{tpl.title}</span>
               </button>
             ))}
           </div>
-        </section>
+        </div>
+      )}
 
-        <section className={`rounded-3xl border bg-gradient-to-l ${meta.color} border-slate-800 p-5 sm:p-6 space-y-4`}>
-          <label className="block text-xs font-medium text-slate-400">{t('orWriteOwn')}</label>
-          <textarea rows={5} value={prompt} onChange={(e) => setPrompt(e.target.value)}
-            placeholder={lang === 'ar' ? 'اكتب تفاصيل طلبك هنا...' : 'Write your prompt...'}
-            className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white text-sm focus:outline-none focus:border-blue-500 resize-y min-h-[120px]" />
-          {error && <div className="p-3 rounded-xl bg-red-950/50 border border-red-800 text-red-400 text-xs">{error}</div>}
-          <button onClick={handleGenerate} disabled={loading}
-            className="w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold rounded-xl text-sm">
-                {loading ? (lang === 'ar' ? 'جاري التوليد...' : 'Generating...') : `✨ ${lang === 'ar' ? 'توليد' : 'Generate'} (− ${cost} REMO)`}
-          </button>
-        </section>
+      {/* مسار المحادثة المدمج */}
+      <div
+        ref={listRef}
+        className="flex-1 overflow-y-auto max-w-3xl mx-auto w-full px-3 py-4 space-y-4"
+      >
+        {messages.length === 0 && (
+          <div className="text-center text-slate-500 text-sm py-16">
+            <p className="text-2xl mb-2">{meta.icon}</p>
+            <p>اكتب طلبك بالأسفل — ستظهر الردود هنا ويمكنك المتابعة كالرد على المحادثة</p>
+          </div>
+        )}
 
-        <section className="rounded-3xl border border-slate-800 bg-slate-900 p-5 sm:p-6 min-h-[50vh] flex flex-col">
-          <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
-            <h3 className="text-xs font-bold text-slate-400">{t('result')}</h3>
-            <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500">
-              {lastCost !== null && <span className="text-amber-400">−{lastCost} REMO</span>}
-              {metaInfo && <span>{metaInfo}</span>}
+        {messages.map((m) => (
+          <div
+            key={m.id}
+            className={`flex ${m.role === 'user' ? 'justify-start' : 'justify-end'}`}
+          >
+            <div
+              className={`max-w-[92%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+                m.role === 'user'
+                  ? 'bg-blue-600 text-white rounded-br-md'
+                  : 'bg-slate-900 border border-slate-800 text-slate-100 rounded-bl-md'
+              }`}
+            >
+              {m.role === 'assistant' && (m.provider || m.model) && (
+                <p className="text-[10px] text-slate-500 mb-1">
+                  {[m.provider, m.model].filter(Boolean).join(' · ')}
+                  {m.cost != null ? ` · ${m.cost} REMO` : ''}
+                </p>
+              )}
+              {m.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={m.imageUrl}
+                  alt="نتيجة"
+                  className="rounded-xl max-w-full mb-2 border border-slate-700"
+                />
+              )}
+              {m.content}
             </div>
           </div>
-          <div className="min-h-[140px] p-4 bg-slate-950 border border-slate-800 rounded-2xl text-slate-300 text-sm whitespace-pre-wrap min-h-[40vh] overflow-auto leading-relaxed">
-            {result || (lang === 'ar' ? 'ستظهر النتيجة هنا بعد التوليد...' : 'Result will appear here...')}
+        ))}
+
+        {loading && (
+          <div className="flex justify-end">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-xs text-slate-400">
+              جاري التوليد…
+            </div>
           </div>
-          <div className="mt-3">
-            <FileActions resultText={result} resultUrl={resultUrl} />
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* شريط الإدخال السفلي — مدمج مثل Gemini */}
+      <div className="sticky bottom-0 border-t border-slate-800 bg-slate-950/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
+        <div className="max-w-3xl mx-auto px-3 py-3">
+          {error && (
+            <p className="text-[11px] text-red-400 mb-2 line-clamp-3">{error}</p>
+          )}
+          <div className="rounded-3xl border border-slate-700 bg-slate-900 shadow-lg shadow-black/30 focus-within:border-blue-600 transition">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              rows={2}
+              placeholder="اكتب رسالتك أو ردّاً على النتيجة السابقة…"
+              className="w-full bg-transparent px-4 pt-3 pb-1 text-sm text-slate-100 placeholder:text-slate-500 resize-none focus:outline-none min-h-[56px] max-h-40"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  send()
+                }
+              }}
+            />
+            <div className="flex items-center justify-between px-3 pb-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setMessages([])}
+                className="text-[11px] text-slate-500 hover:text-slate-300"
+              >
+                محادثة جديدة
+              </button>
+              <button
+                type="button"
+                disabled={loading || !input.trim()}
+                onClick={() => send()}
+                className="rounded-2xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-5 py-2 text-sm font-bold text-white"
+              >
+                {loading ? '…' : `إرسال (−${costLabel} REMO)`}
+              </button>
+            </div>
           </div>
-          <div className="hidden">
-          </div>
-        </section>
+          <p className="text-[10px] text-slate-600 text-center mt-2">
+            Enter للإرسال · Shift+Enter لسطر جديد · يمكنك متابعة الحوار بعد كل رد
+          </p>
+        </div>
       </div>
     </div>
-  );
+  )
 }
