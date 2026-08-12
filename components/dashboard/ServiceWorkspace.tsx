@@ -1,5 +1,7 @@
 'use client'
 
+import { getSupabase } from '@/lib/supabase'
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 
@@ -131,15 +133,28 @@ export default function ServiceWorkspace({ service }: { service: string }) {
           ? `المحادثة السابقة:\n${history}\n\nالرد على آخر رسالة للمستخدم فقط بشكل مفيد.`
           : prompt
 
+      let accessToken = ''
+      let userEmail = ''
+      try {
+        const sb = getSupabase()
+        const { data: { session } } = await sb.auth.getSession()
+        accessToken = session?.access_token || ''
+        userEmail = session?.user?.email || ''
+      } catch { /* */ }
+
       const res = await fetch('/api/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
         credentials: 'include',
         body: JSON.stringify({
           prompt: fullPrompt,
           type: meta.type,
           provider: provider === 'auto' ? undefined : provider,
           service,
+          email: userEmail || undefined,
         }),
       })
       const data = await res.json().catch(() => ({}))
