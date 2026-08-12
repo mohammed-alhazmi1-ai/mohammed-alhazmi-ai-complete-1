@@ -72,6 +72,7 @@ export default function ServiceWorkspace({ service }: { service: string }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -113,6 +114,80 @@ export default function ServiceWorkspace({ service }: { service: string }) {
   }, [messages, loading])
 
   const costLabel = useMemo(() => meta.cost, [meta.cost])
+
+  
+  function downloadText(text: string, name = 'result.txt') {
+    try {
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = name
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch { /* */ }
+  }
+
+  function downloadUrl(url: string, name = 'result') {
+    try {
+      const a = document.createElement('a')
+      a.href = url
+      a.download = name
+      a.target = '_blank'
+      a.rel = 'noopener'
+      a.click()
+    } catch { /* */ }
+  }
+
+  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    // صور: نرفق وصفاً + نقرأ كـ data URL إن لزم
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const dataUrl = String(reader.result || '')
+        setInput((prev) => {
+          const note = prev.trim()
+            ? prev.trim() + '\n\n[تم رفع صورة: ' + file.name + ']'
+            : 'حلّل/عدّل هذه الصورة: ' + file.name
+          return note
+        })
+        // احفظ مؤقتاً في session للطلبات اللاحقة
+        try {
+          sessionStorage.setItem('pendingUploadName', file.name)
+          sessionStorage.setItem('pendingUploadDataUrl', dataUrl.slice(0, 500000))
+        } catch { /* */ }
+      }
+      reader.readAsDataURL(file)
+      return
+    }
+    // نصوص
+    if (
+      file.type.startsWith('text/') ||
+      /\.(txt|md|json|csv|js|ts|tsx|jsx|py|html|css)$/i.test(file.name)
+    ) {
+      try {
+        const text = await file.text()
+        setInput((prev) => {
+          const body = text.slice(0, 12000)
+          return prev.trim()
+            ? prev.trim() + '\n\n--- محتوى الملف ' + file.name + ' ---\n' + body
+            : 'اعمل على هذا الملف (' + file.name + '):\n\n' + body
+        })
+      } catch {
+        setError('تعذر قراءة الملف')
+      }
+      return
+    }
+    setInput((prev) =>
+      prev.trim()
+        ? prev + '\n\n[مرفق: ' + file.name + ']'
+        : 'ملف مرفق: ' + file.name + ' — صف ما تريد فعله به'
+    )
+  }
+
 
   async function send(text?: string) {
     const prompt = (text ?? input).trim()
@@ -294,6 +369,20 @@ export default function ServiceWorkspace({ service }: { service: string }) {
                 />
               )}
               {m.content}
+              {m.role === 'assistant' && (m.content || m.imageUrl) && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="text-[11px] px-2.5 py-1 rounded-lg border border-slate-700 text-slate-300 hover:border-emerald-600 hover:text-emerald-400"
+                    onClick={() => {
+                      if (m.imageUrl) downloadUrl(m.imageUrl, 'result-image')
+                      else downloadText(m.content, 'result.txt')
+                    }}
+                  >
+                    ↓ تحميل
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -329,13 +418,43 @@ export default function ServiceWorkspace({ service }: { service: string }) {
               }}
             />
             <div className="flex items-center justify-between px-3 pb-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setMessages([])}
-                className="text-[11px] text-slate-500 hover:text-slate-300"
-              >
-                محادثة جديدة
-              </button>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.txt,.md,.json,.csv,.js,.ts,.tsx,.jsx,.py,.html,.css,audio/*,video/*"
+                  className="hidden"
+                  onChange={onPickFile}
+                />
+                <button
+                  type="button"
+                  title="رفع ملف"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-9 h-9 rounded-full border border-slate-600 bg-slate-950 text-lg font-bold text-slate-200 hover:border-blue-500 hover:text-white flex items-center justify-center"
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  title="تحميل آخر رد"
+                  onClick={() => {
+                    const last = [...messages].reverse().find((m) => m.role === 'assistant')
+                    if (!last) return
+                    if (last.imageUrl) downloadUrl(last.imageUrl, 'result-image')
+                    else if (last.content) downloadText(last.content, 'result.txt')
+                  }}
+                  className="text-[11px] px-2.5 py-1.5 rounded-xl border border-slate-700 text-slate-300 hover:border-emerald-600"
+                >
+                  ↓ تحميل
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMessages([])}
+                  className="text-[11px] text-slate-500 hover:text-slate-300"
+                >
+                  محادثة جديدة
+                </button>
+              </div>
               <button
                 type="button"
                 disabled={loading || !input.trim()}
