@@ -438,7 +438,7 @@ async function runOne(
       `اكتب سيناريو فيديو قصير + لقطات + English prompt لمولد فيديو:\n${prompt}`
     )
     return g.ok
-      ? { ...g, text: `تعذر فيديو مباشر من \( {provider}.\n\n \){g.text}` }
+      ? { ...g, text: "تعذر فيديو مباشر من " + provider + ".\n\n" + (g.text || "") }
       : g
   }
   if (type === 'music') {
@@ -447,7 +447,7 @@ async function runOne(
       `اكتب وصفاً موسيقياً + English prompt لمولد موسيقى/شيلة/زفة:\n${prompt}`
     )
     return g.ok
-      ? { ...g, text: `تعذر مقطع صوتي مباشر من \( {provider}.\n\n \){g.text}` }
+      ? { ...g, text: "تعذر مقطع صوتي مباشر من " + provider + ".\n\n" + (g.text || "") }
       : g
   }
   return { ok: false, provider, model: '-', error: 'نوع غير مدعوم' }
