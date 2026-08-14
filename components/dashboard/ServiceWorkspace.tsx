@@ -17,6 +17,39 @@ type Msg = {
 
 type ProviderOpt = { slug: string; name: string }
 
+type Thread = {
+  id: string
+  title: string
+  service: string
+  messages: Msg[]
+  updatedAt: number
+}
+
+function storageKey(service: string, email?: string) {
+  return `remo_threads_\( {service}_ \){(email || 'guest').toLowerCase()}`
+}
+
+function loadLocalThreads(service: string, email?: string): Thread[] {
+  try {
+    const raw = localStorage.getItem(storageKey(service, email))
+    if (!raw) return []
+    const arr = JSON.parse(raw)
+    return Array.isArray(arr) ? arr : []
+  } catch {
+    return []
+  }
+}
+
+function saveLocalThreads(service: string, email: string | undefined, threads: Thread[]) {
+  try {
+    localStorage.setItem(storageKey(service, email), JSON.stringify(threads.slice(0, 40)))
+  } catch {
+    /* */
+  }
+}
+
+
+
 const SERVICE_META: Record<
   string,
   { title: string; icon: string; color: string; cost: number; type: string }
@@ -71,6 +104,13 @@ export default function ServiceWorkspace({ service }: { service: string }) {
   const [providers, setProviders] = useState<ProviderOpt[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const [threads, setThreads] = useState<Thread[]>([])
+  const [threadId, setThreadId] = useState<string | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [serverJobs, setServerJobs] = useState<any[]>([])
+  const [userEmail, setUserEmail] = useState('')
+
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -189,13 +229,39 @@ export default function ServiceWorkspace({ service }: { service: string }) {
   }
 
 
+  
+  function persistMessages(next: Msg[], tid?: string | null) {
+    const id = tid || threadId || uid()
+    const title =
+      next.find((m) => m.role === 'user')?.content?.slice(0, 48) ||
+      'محادثة جديدة'
+    setThreadId(id)
+    setThreads((prev) => {
+      const others = prev.filter((x) => x.id !== id)
+      const row: Thread = {
+        id,
+        title,
+        service,
+        messages: next,
+        updatedAt: Date.now(),
+      }
+      const list = [row, ...others].slice(0, 40)
+      saveLocalThreads(service, userEmail, list)
+      return list
+    })
+  }
+
   async function send(text?: string) {
     const prompt = (text ?? input).trim()
     if (!prompt || loading) return
     setError('')
     setInput('')
     const userMsg: Msg = { id: uid(), role: 'user', content: prompt }
-    setMessages((m) => [...m, userMsg])
+    setMessages((m) => {
+      const next = [...m, userMsg]
+      persistMessages(next)
+      return next
+    })
     setLoading(true)
     try {
       // سياق المحادثة السابق (آخر ردود) لتحسين الاستمرار
@@ -240,16 +306,20 @@ export default function ServiceWorkspace({ service }: { service: string }) {
           (typeof data.text === 'string' && data.text) ||
           'فشل التوليد'
         setError(String(err))
-        setMessages((m) => [
-          ...m,
-          {
-            id: uid(),
-            role: 'assistant',
-            content: String(err),
-            provider: data.provider,
-            model: data.model,
-          },
-        ])
+        setMessages((m) => {
+          const next = [
+            ...m,
+            {
+              id: uid(),
+              role: 'assistant',
+              content: String(err),
+              provider: data.provider,
+              model: data.model,
+            },
+          ]
+          persistMessages(next)
+          return next
+        })
         return
       }
       const out =
@@ -257,18 +327,22 @@ export default function ServiceWorkspace({ service }: { service: string }) {
         data.result ||
         (data.imageUrl ? 'تم توليد صورة.' : '') ||
         'تم'
-      setMessages((m) => [
-        ...m,
-        {
-          id: uid(),
-          role: 'assistant',
-          content: String(out),
-          imageUrl: data.imageUrl || data.url || undefined,
-          provider: data.provider,
-          model: data.model,
-          cost: data.cost ?? meta.cost,
-        },
-      ])
+      setMessages((m) => {
+        const next = [
+          ...m,
+          {
+            id: uid(),
+            role: 'assistant',
+            content: String(out),
+            imageUrl: data.imageUrl || data.url || undefined,
+            provider: data.provider,
+            model: data.model,
+            cost: data.cost ?? meta.cost,
+          },
+        ]
+        persistMessages(next)
+        return next
+      })
     } catch (e: any) {
       setError(e?.message || 'خطأ شبكة')
     } finally {
@@ -280,12 +354,122 @@ export default function ServiceWorkspace({ service }: { service: string }) {
     setInput(prompt)
   }
 
+  function openThread(th: Thread) {
+    setThreadId(th.id)
+    setMessages(th.messages || [])
+    setError('')
+    if (typeof window !== 'undefined' && window.innerWidth < 768) setSidebarOpen(false)
+  }
+
+  function openServerJob(job: any) {
+    const msgs: Msg[] = []
+    if (job.prompt) {
+      msgs.push({ id: uid(), role: 'user', content: String(job.prompt) })
+    }
+    if (job.result || job.resultUrl) {
+      msgs.push({
+        id: uid(),
+        role: 'assistant',
+        content: String(job.result || (job.resultUrl ? 'تم التوليد' : '')),
+        imageUrl: job.resultUrl || undefined,
+        provider: job.provider,
+        model: job.model,
+        cost: job.creditsUsed,
+      })
+    }
+    const th: Thread = {
+      id: 'job-' + job.id,
+      title: String(job.prompt || '').slice(0, 48) || 'طلب سابق',
+      service,
+      messages: msgs,
+      updatedAt: new Date(job.createdAt || Date.now()).getTime(),
+    }
+    setThreads((prev) => {
+      const list = [th, ...prev.filter((x) => x.id !== th.id)].slice(0, 40)
+      saveLocalThreads(service, userEmail, list)
+      return list
+    })
+    openThread(th)
+  }
+
+  function newChat() {
+    setThreadId(null)
+    setMessages([])
+    setError('')
+  }
+
   return (
-    <div className="min-h-[100dvh] bg-slate-950 text-slate-100 flex flex-col" dir="rtl">
+    <div className="min-h-[100dvh] bg-slate-950 text-slate-100 flex flex-col md:flex-row" dir="rtl">
+      {/* قائمة جانبية — السجل */}
+      <aside
+        className={`${
+          sidebarOpen ? 'flex' : 'hidden'
+        } md:flex w-full md:w-72 shrink-0 flex-col border-l border-slate-800 bg-slate-900/90 max-h-[40vh] md:max-h-none md:min-h-[100dvh]`}
+      >
+        <div className="p-3 border-b border-slate-800 flex items-center justify-between gap-2">
+          <span className="text-xs font-bold text-slate-300">سجل المحادثات</span>
+          <button
+            type="button"
+            onClick={newChat}
+            className="text-[11px] px-2 py-1 rounded-lg bg-blue-600 text-white font-bold"
+          >
+            + جديد
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          {threads.length === 0 && serverJobs.length === 0 && (
+            <p className="text-[11px] text-slate-500 p-2">لا توجد محادثات محفوظة بعد</p>
+          )}
+          {threads.map((th) => (
+            <button
+              key={th.id}
+              type="button"
+              onClick={() => openThread(th)}
+              className={`w-full text-right rounded-xl px-3 py-2 text-xs border transition ${
+                threadId === th.id
+                  ? 'border-blue-600 bg-blue-950/40 text-white'
+                  : 'border-transparent hover:bg-slate-800 text-slate-300'
+              }`}
+            >
+              <div className="line-clamp-2 font-medium">{th.title || 'محادثة'}</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">
+                {new Date(th.updatedAt).toLocaleString('ar')}
+              </div>
+            </button>
+          ))}
+          {serverJobs.length > 0 && (
+            <>
+              <p className="text-[10px] text-slate-500 px-2 pt-3">من السيرفر</p>
+              {serverJobs.slice(0, 30).map((job) => (
+                <button
+                  key={job.id}
+                  type="button"
+                  onClick={() => openServerJob(job)}
+                  className="w-full text-right rounded-xl px-3 py-2 text-xs text-slate-400 hover:bg-slate-800 border border-transparent"
+                >
+                  <div className="line-clamp-2">{String(job.prompt || '').slice(0, 60) || job.type}</div>
+                  <div className="text-[10px] text-slate-600 mt-0.5">
+                    {job.status} · {job.provider || '—'}
+                  </div>
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+      </aside>
+
+      <div className="flex-1 flex flex-col min-w-0 min-h-[60vh]">
       {/* شريط علوي */}
       <header className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
         <div className="max-w-3xl mx-auto px-3 py-2.5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen((v) => !v)}
+              className="text-xs px-2 py-1 rounded-lg border border-slate-700 text-slate-300 md:hidden"
+            >
+              السجل
+            </button>
             <Link href="/dashboard" className="text-xs text-slate-400 hover:text-white shrink-0">
               ← رجوع
             </Link>
@@ -449,7 +633,7 @@ export default function ServiceWorkspace({ service }: { service: string }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setMessages([])}
+                  onClick={() => newChat()}
                   className="text-[11px] text-slate-500 hover:text-slate-300"
                 >
                   محادثة جديدة
@@ -471,5 +655,6 @@ export default function ServiceWorkspace({ service }: { service: string }) {
         </div>
       </div>
     </div>
+      </div>
   )
 }
