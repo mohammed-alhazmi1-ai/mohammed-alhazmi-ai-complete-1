@@ -31,6 +31,16 @@ type SeedProvider = {
 
 const SEED: SeedProvider[] = [
   {
+    slug: 'pollinations',
+    name: 'Pollinations',
+    category: 'image',
+    priority: 5,
+    defaultModel: 'flux',
+    costPerUse: 15,
+    envKey: 'POLLINATIONS_API_KEY',
+  },
+
+  {
     slug: 'gemini',
     name: 'Google Gemini',
     category: 'text',
@@ -154,6 +164,15 @@ async function listFromDb(prisma: any) {
 async function testProvider(slug: string, key: string): Promise<ProviderTestResult> {
   if (!key) return { success: false, message: 'لا يوجد مفتاح' }
   try {
+    
+    if (slug === 'pollinations') {
+      const q = encodeURIComponent('test logo')
+      const url = `https://gen.pollinations.ai/image/\( {q}?model=flux&width=512&height=512&key= \){encodeURIComponent(key)}`
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${key}` } })
+      if (res.ok) return { success: true, message: 'Pollinations متصل' }
+      return { success: false, message: `Pollinations HTTP ${res.status}` }
+    }
+
     if (slug === 'gemini') {
       const keyTrim = key.trim()
       const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-flash-latest']

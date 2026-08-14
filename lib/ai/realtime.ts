@@ -56,8 +56,8 @@ function orderProviders(
 ): Array<'gemini' | 'huggingface' | 'replicate'> {
   const all: Array<'gemini' | 'huggingface' | 'replicate'> =
     forType === 'images' || forType === 'video' || forType === 'music'
-      ? ['replicate', 'huggingface', 'gemini']
-      : ['gemini', 'huggingface', 'replicate']
+      ? ['pollinations', 'replicate', 'huggingface', 'gemini']
+      : ['pollinations', 'gemini', 'huggingface', 'replicate']
 
   if (preferred === 'auto') return all
   return [preferred, ...all.filter((p) => p !== preferred)]
@@ -416,6 +416,79 @@ async function replicateText(prompt: string) {
 }
 
 // ─── تنفيذ حسب المزود والنوع ─────────────────────────────
+
+function pollinationsKey() {
+  return (
+    process.env.POLLINATIONS_API_KEY ||
+    process.env.POLLINATIONS_KEY ||
+    ''
+  ).trim()
+}
+
+/** صور عبر Pollinations — مجاني/تجريبي */
+async function pollinationsImage(prompt: string): Promise<GenResult> {
+  const key = pollinationsKey()
+  const model = 'flux'
+  if (!key) {
+    return { ok: false, provider: 'pollinations', model, error: 'POLLINATIONS_API_KEY مفقود' }
+  }
+  try {
+    const q = encodeURIComponent(prompt.slice(0, 800))
+    // المفتاح في الاستعلام أو الترويسة
+    const url =
+      `https://gen.pollinations.ai/image/\( {q}?model= \){model}&width=1024&height=1024&nologo=true&key=${encodeURIComponent(key)}`
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${key}`,
+        Accept: 'image/*',
+      },
+      redirect: 'follow',
+    })
+    if (!res.ok) {
+      const errTxt = await res.text().catch(() => '')
+      return {
+        ok: false,
+        provider: 'pollinations',
+        model,
+        error: `Pollinations HTTP ${res.status}: ${errTxt.slice(0, 200)}`,
+      }
+    }
+    const ctype = (res.headers.get('content-type') || '').toLowerCase()
+    const buf = Buffer.from(await res.arrayBuffer())
+    if (buf.length < 500) {
+      return {
+        ok: false,
+        provider: 'pollinations',
+        model,
+        error: 'رد Pollinations ليس صورة صالحة',
+      }
+    }
+    const mime = ctype.includes('png')
+      ? 'image/png'
+      : ctype.includes('webp')
+        ? 'image/webp'
+        : 'image/jpeg'
+    const b64 = buf.toString('base64')
+    const dataUrl = `data:\( {mime};base64, \){b64}`
+    return {
+      ok: true,
+      provider: 'pollinations',
+      model,
+      text: 'تم توليد الصورة عبر Pollinations',
+      imageUrl: dataUrl,
+    }
+  } catch (e: any) {
+    return {
+      ok: false,
+      provider: 'pollinations',
+      model,
+      error: e?.message || 'خطأ Pollinations',
+    }
+  }
+}
+
+
 async function runOne(
   provider: 'gemini' | 'huggingface' | 'replicate',
   type: GenType,
@@ -427,9 +500,25 @@ async function runOne(
     return replicateText(prompt)
   }
   if (type === 'images') {
+    if (provider === 'pollinations') return pollinationsImage(prompt)
     if (provider === 'replicate') return replicateImage(prompt)
     if (provider === 'huggingface') return hfImage(prompt)
-    return geminiImages(prompt)
+    if (provider === 'gemini') return geminiImages(prompt)
+    // تلقائي: Pollinations أولاً (مجاني) ثم الباقي
+    const p1 = await pollinationsImage(prompt)
+    if (p1.ok) return p1
+    const p2 = await replicateImage(prompt)
+    if (p2.ok) return p2
+    const p3 = await hfImage(prompt)
+    if (p3.ok) return p3
+    const p4 = await geminiImages(prompt)
+    if (p4.ok) return p4
+    return {
+      ok: false,
+      provider: 'none',
+      model: '-',
+      error: [p1.error, p2.error, p3.error, p4.error].filter(Boolean).join(' | '),
+    }
   }
   if (type === 'video') {
     if (provider === 'replicate') return replicateVideo(prompt)
