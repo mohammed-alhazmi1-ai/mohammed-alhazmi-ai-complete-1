@@ -3,24 +3,24 @@
 import { useEffect, useState } from 'react'
 
 type Props = {
-  /** مدة الظهور بالميلي ثانية */
+  /** الحد الأدنى للعرض بعد اكتمال تحميل الشعار (مللي ثانية) */
   durationMs?: number
-  /** مسار الشعار من public */
   logoSrc?: string
-  /** النص تحت الشعار */
   message?: string
 }
 
 export default function SplashScreen({
-  durationMs = 2200,
+  durationMs = 4500,
   logoSrc = '/logo-splash.png',
   message = 'جاري تجهيز المنصة…',
 }: Props) {
   const [show, setShow] = useState(true)
   const [fade, setFade] = useState(false)
+  const [logoReady, setLogoReady] = useState(false)
+  const [progress, setProgress] = useState(0)
 
+  // تحميل مسبق للشعار — لا نبدأ العدّ إلا بعد الجاهزية (أو مهلة أمان)
   useEffect(() => {
-    // لا تكرر الـ splash في نفس الجلسة (اختياري)
     try {
       if (sessionStorage.getItem('remo_splash_done') === '1') {
         setShow(false)
@@ -30,8 +30,35 @@ export default function SplashScreen({
       /* */
     }
 
-    const t1 = setTimeout(() => setFade(true), Math.max(400, durationMs - 400))
-    const t2 = setTimeout(() => {
+    let cancelled = false
+    const img = new Image()
+    img.onload = () => {
+      if (!cancelled) setLogoReady(true)
+    }
+    img.onerror = () => {
+      // حتى لو فشل التحميل نعرض الشاشة بالنص
+      if (!cancelled) setLogoReady(true)
+    }
+    img.src = logoSrc
+
+    // مهلة أمان: لا نعلّق أكثر من 4 ثوانٍ بانتظار الصورة
+    const safety = setTimeout(() => {
+      if (!cancelled) setLogoReady(true)
+    }, 4000)
+
+    return () => {
+      cancelled = true
+      clearTimeout(safety)
+    }
+  }, [logoSrc])
+
+  // بعد جاهزية الشعار: نعرض المدة كاملة ثم اختفاء تدريجي
+  useEffect(() => {
+    if (!show || !logoReady) return
+
+    const fadeAt = Math.max(800, durationMs - 700)
+    const tFade = setTimeout(() => setFade(true), fadeAt)
+    const tHide = setTimeout(() => {
       setShow(false)
       try {
         sessionStorage.setItem('remo_splash_done', '1')
@@ -40,46 +67,65 @@ export default function SplashScreen({
       }
     }, durationMs)
 
+    // شريط تقدّم بسيط
+    const start = Date.now()
+    const tick = setInterval(() => {
+      const p = Math.min(100, ((Date.now() - start) / durationMs) * 100)
+      setProgress(p)
+    }, 50)
+
     return () => {
-      clearTimeout(t1)
-      clearTimeout(t2)
+      clearTimeout(tFade)
+      clearTimeout(tHide)
+      clearInterval(tick)
     }
-  }, [durationMs])
+  }, [show, logoReady, durationMs])
 
   if (!show) return null
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black transition-opacity duration-500 ${
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black transition-opacity duration-700 ${
         fade ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
       dir="rtl"
       aria-live="polite"
       aria-busy="true"
     >
-      {/* وهج خلفي */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(37,99,235,0.25)_0%,_transparent_70%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(37,99,235,0.28)_0%,_transparent_70%)]" />
 
-      <div className="relative flex flex-col items-center gap-6 px-6">
-        {/* الشعار متحرك */}
+      <div className="relative flex flex-col items-center gap-7 px-6">
         <div className="relative">
-          <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-3xl animate-pulse" />
+          <div className="absolute inset-0 rounded-full bg-blue-500/25 blur-3xl animate-pulse" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={logoSrc}
             alt="منصة محمد الحزمي للذكاء الاصطناعي"
-            className="relative w-44 h-44 sm:w-56 sm:h-56 object-contain drop-shadow-[0_0_30px_rgba(59,130,246,0.5)] animate-[spin_12s_linear_infinite]"
-            style={{ animation: 'splashPulse 2s ease-in-out infinite' }}
+            width={224}
+            height={224}
+            className={`relative w-48 h-48 sm:w-56 sm:h-56 object-contain transition-opacity duration-500 ${
+              logoReady ? 'opacity-100' : 'opacity-0'
+            }`}
+            style={{
+              animation: logoReady ? 'splashPulse 2.4s ease-in-out infinite' : undefined,
+            }}
+            onLoad={() => setLogoReady(true)}
           />
         </div>
 
-        <p className="text-slate-200 text-sm sm:text-base font-medium tracking-wide animate-pulse">
-          {message}
-        </p>
+        <div className="text-center space-y-2">
+          <p className="text-slate-100 text-base sm:text-lg font-semibold tracking-wide">
+            {message}
+          </p>
+          <p className="text-slate-500 text-xs">منصة محمد الحزمي للذكاء الاصطناعي</p>
+        </div>
 
-        {/* شريط تحميل بسيط */}
-        <div className="w-40 h-1 rounded-full bg-slate-800 overflow-hidden">
-          <div className="h-full w-1/2 rounded-full bg-gradient-to-l from-blue-500 to-amber-400 animate-[splashBar_1.5s_ease-in-out_infinite]" />
+        {/* شريط تحميل أوضح */}
+        <div className="w-52 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-l from-blue-500 via-sky-400 to-amber-400 transition-[width] duration-100 ease-linear"
+            style={{ width: `${progress}%` }}
+          />
         </div>
       </div>
 
@@ -88,19 +134,11 @@ export default function SplashScreen({
           0%,
           100% {
             transform: scale(1);
-            filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.4));
+            filter: drop-shadow(0 0 14px rgba(59, 130, 246, 0.45));
           }
           50% {
-            transform: scale(1.06);
-            filter: drop-shadow(0 0 28px rgba(234, 179, 8, 0.45));
-          }
-        }
-        @keyframes splashBar {
-          0% {
-            transform: translateX(-100%);
-          }
-          100% {
-            transform: translateX(200%);
+            transform: scale(1.05);
+            filter: drop-shadow(0 0 32px rgba(234, 179, 8, 0.5));
           }
         }
       `}</style>

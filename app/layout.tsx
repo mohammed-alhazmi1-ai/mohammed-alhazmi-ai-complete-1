@@ -12,7 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className="bg-slate-950 text-slate-100 min-h-screen">
-        <SplashScreen durationMs={2200} logoSrc="/logo-splash.png" message="جاري تجهيز المنصة…" />
+        <SplashScreen durationMs={4800} logoSrc="/logo-splash.png" message="جاري تجهيز المنصة…" />
         <LanguageProvider>{children}</LanguageProvider>
                 <CustomScripts />
         </body>
