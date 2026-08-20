@@ -9,7 +9,6 @@ export type ServiceToggle = {
   order: number
 }
 
-
 export type SocialLink = {
   id: string
   label: string
@@ -26,7 +25,6 @@ export type NavButton = {
   enabled: boolean
   order: number
 }
-
 
 export type LandingContent = {
   badgeText: string
@@ -60,8 +58,6 @@ export type LandingContent = {
 
 export type PlatformFullSettings = {
   freeSignupRemo: number
-  landing: LandingContent
-  landing: { ...DEFAULT_LANDING },
   siteName: string
   siteTagline: string
   siteDescription: string
@@ -70,8 +66,7 @@ export type PlatformFullSettings = {
   maintenanceMode: boolean
   maintenanceMessage: string
   services: ServiceToggle[]
-  landing: { ...DEFAULT_LANDING, ...(data.landing || {}) },
-      navButtons: NavButton[]
+  navButtons: NavButton[]
   socialLinks: SocialLink[]
   customHeadHtml: string
   customBodyHtml: string
@@ -110,20 +105,31 @@ const DEFAULT_SERVICES: ServiceToggle[] = [
   { id: 'bot', name: 'المساعد الذكي', href: '/dashboard/bot', enabled: true, order: 6 },
 ]
 
-
 const DEFAULT_SOCIAL: SocialLink[] = [
-  { id: 'whatsapp', label: 'واتساب', href: 'https://wa.me/967777096733', icon: 'whatsapp', enabled: true, order: 1 },
+  {
+    id: 'whatsapp',
+    label: 'واتساب',
+    href: 'https://wa.me/967777096733',
+    icon: 'whatsapp',
+    enabled: true,
+    order: 1,
+  },
   { id: 'telegram', label: 'تيليجرام', href: '', icon: 'telegram', enabled: false, order: 2 },
   { id: 'twitter', label: 'X / تويتر', href: '', icon: 'twitter', enabled: false, order: 3 },
   { id: 'instagram', label: 'إنستغرام', href: '', icon: 'instagram', enabled: false, order: 4 },
   { id: 'youtube', label: 'يوتيوب', href: '', icon: 'youtube', enabled: false, order: 5 },
   { id: 'facebook', label: 'فيسبوك', href: '', icon: 'facebook', enabled: false, order: 6 },
-  { id: 'tiktok', label: 'تيك توك', href: '', icon: 'tiktok', enabled: false, order: 7 },
-  { id: 'snapchat', label: 'سناب شات', href: '', icon: 'snapchat', enabled: false, order: 8 },
 ]
 
+const DEFAULT_NAV: NavButton[] = [
+  { id: 'start', label: 'ابدأ الآن', href: '/register', enabled: true, order: 1 },
+  { id: 'login', label: 'تسجيل الدخول', href: '/login', enabled: true, order: 2 },
+  { id: 'plans', label: 'الخطط', href: '/#plans', enabled: true, order: 3 },
+  { id: 'about', label: 'من نحن', href: '/about', enabled: true, order: 4 },
+  { id: 'contact', label: 'اتصل بنا', href: '/contact', enabled: true, order: 5 },
+]
 
-const DEFAULT_LANDING: LandingContent = {
+export const DEFAULT_LANDING: LandingContent = {
   badgeText: 'منصة عربية للذكاء الاصطناعي',
   heroSubtitle:
     'توليد الصور والفيديو والموسيقى والبرمجة والدردشة الذكية — في مكان واحد، بواجهة عربية سهلة واحترافية.',
@@ -153,15 +159,6 @@ const DEFAULT_LANDING: LandingContent = {
   registerLabel: 'إنشاء حساب',
   memberHint: 'عضو جديد؟',
 }
-
-
-const DEFAULT_NAV: NavButton[] = [
-  { id: 'start', label: 'ابدأ الآن', href: '/register', enabled: true, order: 1 },
-  { id: 'login', label: 'تسجيل الدخول', href: '/login', enabled: true, order: 2 },
-  { id: 'plans', label: 'الخطط', href: '/#plans', enabled: true, order: 3 },
-  { id: 'about', label: 'من نحن', href: '/about', enabled: true, order: 4 },
-  { id: 'contact', label: 'اتصل بنا', href: '/contact', enabled: true, order: 5 },
-]
 
 export const DEFAULT_FULL: PlatformFullSettings = {
   freeSignupRemo: 100,
@@ -198,6 +195,7 @@ export const DEFAULT_FULL: PlatformFullSettings = {
   privacyBody: 'نحترم خصوصيتك ولا نبيع بياناتك لأطراف ثالثة.',
   termsTitle: 'الشروط والأحكام',
   termsBody: 'باستخدامك المنصة فإنك توافق على شروط الاستخدام وسياسة الرصيد REMO.',
+  landing: { ...DEFAULT_LANDING },
 }
 
 export async function getFullSettings(): Promise<PlatformFullSettings> {
@@ -219,14 +217,13 @@ export async function getFullSettings(): Promise<PlatformFullSettings> {
         Array.isArray(data.navButtons) && data.navButtons.length
           ? data.navButtons
           : DEFAULT_NAV,
+      landing: {
+        ...DEFAULT_LANDING,
+        ...(data.landing && typeof data.landing === 'object' ? data.landing : {}),
+      },
     }
   } catch {
-    return {
-      ...DEFAULT_FULL,
-      services: [...DEFAULT_SERVICES],
-      navButtons: [...DEFAULT_NAV],
-      socialLinks: [...DEFAULT_SOCIAL],
-    }
+    return { ...DEFAULT_FULL, landing: { ...DEFAULT_LANDING } }
   }
 }
 
@@ -237,33 +234,17 @@ export async function saveFullSettings(
   const next: PlatformFullSettings = {
     ...cur,
     ...patch,
-    freeSignupRemo: Math.max(
-      0,
-      Math.min(100000, Number(patch.freeSignupRemo ?? cur.freeSignupRemo) || 0)
-    ),
     services: patch.services ?? cur.services,
-    navButtons: patch.navButtons ?? cur.navButtons,
     socialLinks: patch.socialLinks ?? cur.socialLinks,
+    navButtons: patch.navButtons ?? cur.navButtons,
+    landing: {
+      ...DEFAULT_LANDING,
+      ...cur.landing,
+      ...(patch.landing || {}),
+    },
     updatedAt: new Date().toISOString(),
   }
   await fs.mkdir(path.dirname(FILE), { recursive: true })
   await fs.writeFile(FILE, JSON.stringify(next, null, 2), 'utf8')
-  try {
-    await fs.writeFile(
-      path.join(process.cwd(), 'data', 'settings-a.json'),
-      JSON.stringify(
-        {
-          freeSignupRemo: next.freeSignupRemo,
-          siteName: next.siteName,
-          siteTagline: next.siteTagline,
-        },
-        null,
-        2
-      ),
-      'utf8'
-    )
-  } catch {
-    /* ignore */
-  }
   return next
 }
