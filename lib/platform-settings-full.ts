@@ -27,8 +27,40 @@ export type NavButton = {
   order: number
 }
 
+
+export type LandingContent = {
+  badgeText: string
+  heroSubtitle: string
+  ticker1: string
+  ticker2: string
+  ticker3: string
+  promptLabel: string
+  promptPlaceholder: string
+  runButton: string
+  ctaPrimary: string
+  ctaPrimaryHref: string
+  ctaSecondary: string
+  ctaSecondaryHref: string
+  servicesTitle: string
+  servicesSubtitle: string
+  featuresTitle: string
+  templatesTitle: string
+  templatesSubtitle: string
+  guideTitle: string
+  guideSubtitle: string
+  articlesTitle: string
+  articlesSubtitle: string
+  comingTitle: string
+  comingSubtitle: string
+  footerNote: string
+  loginLabel: string
+  registerLabel: string
+  memberHint: string
+}
+
 export type PlatformFullSettings = {
   freeSignupRemo: number
+  landing: { ...DEFAULT_LANDING },
   siteName: string
   siteTagline: string
   siteDescription: string
@@ -37,7 +69,8 @@ export type PlatformFullSettings = {
   maintenanceMode: boolean
   maintenanceMessage: string
   services: ServiceToggle[]
-  navButtons: NavButton[]
+  landing: { ...DEFAULT_LANDING, ...(data.landing || {}) },
+      navButtons: NavButton[]
   socialLinks: SocialLink[]
   customHeadHtml: string
   customBodyHtml: string
@@ -61,6 +94,7 @@ export type PlatformFullSettings = {
   privacyBody: string
   termsTitle: string
   termsBody: string
+  landing: LandingContent
   updatedAt?: string
 }
 
@@ -86,6 +120,39 @@ const DEFAULT_SOCIAL: SocialLink[] = [
   { id: 'tiktok', label: 'تيك توك', href: '', icon: 'tiktok', enabled: false, order: 7 },
   { id: 'snapchat', label: 'سناب شات', href: '', icon: 'snapchat', enabled: false, order: 8 },
 ]
+
+
+const DEFAULT_LANDING: LandingContent = {
+  badgeText: 'منصة عربية للذكاء الاصطناعي',
+  heroSubtitle:
+    'توليد الصور والفيديو والموسيقى والبرمجة والدردشة الذكية — في مكان واحد، بواجهة عربية سهلة واحترافية.',
+  ticker1: 'مرحباً بكم في منصة محمد الحزمي للذكاء الاصطناعي',
+  ticker2: 'ماذا في خاطرك اليوم؟ اكتب طلبك وسننفّذه',
+  ticker3: 'صور · فيديو · موسيقى · برمجة · دردشة ذكية',
+  promptLabel: 'ماذا في خاطرك اليوم؟ اكتب طلبك وسنقوم بتنفيذه',
+  promptPlaceholder: 'مثال: صمم شعاراً، اكتب كود صفحة، أو أنشئ وصفاً لفيديو...',
+  runButton: 'تنفيذ',
+  ctaPrimary: 'ابدأ الآن',
+  ctaPrimaryHref: '/register',
+  ctaSecondary: 'لوحة المستخدم',
+  ctaSecondaryHref: '/dashboard',
+  servicesTitle: 'خدمات المنصة',
+  servicesSubtitle: 'كل خدمة بأيقونتها ووصفها — اضغط للانتقال إلى لوحة التحكم',
+  featuresTitle: 'لماذا منصتنا؟',
+  templatesTitle: 'قوالب جاهزة للتجربة',
+  templatesSubtitle: 'اضغط قالباً ليُنسخ إلى مربع الطلب أعلاه — عدّله ثم اضغط تنفيذ',
+  guideTitle: 'كيف تستخدم أدوات المنصة؟',
+  guideSubtitle: 'خمس خطوات بسيطة من التسجيل حتى التحميل',
+  articlesTitle: 'تعرّف على خدمات المنصة',
+  articlesSubtitle: 'مقالات مختصرة تشرح كل خدمة وكيف تفيدك',
+  comingTitle: 'مزايا قيد التطوير',
+  comingSubtitle: 'نعمل على إضافات جديدة لتجربة أقوى — ترقّب التحديثات',
+  footerNote: 'منصة محمد الحزمي للذكاء الاصطناعي',
+  loginLabel: 'دخول',
+  registerLabel: 'إنشاء حساب',
+  memberHint: 'عضو جديد؟',
+}
+
 
 const DEFAULT_NAV: NavButton[] = [
   { id: 'start', label: 'ابدأ الآن', href: '/register', enabled: true, order: 1 },

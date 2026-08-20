@@ -15,7 +15,7 @@ const SIDE_LINKS = [
   { href: '/', label: 'الرئيسية', icon: '🏠' },
   { href: '/register', label: 'إنشاء حساب', icon: '✨' },
   { href: '/login', label: 'تسجيل الدخول', icon: '🔑' },
-  { href: '/dashboard', label: 'لوحة المستخدم', icon: '📊' },
+  { href: '/dashboard', label: '{L('ctaSecondary', 'لوحة المستخدم')}', icon: '📊' },
   { href: '/dashboard/images', label: 'الصور', icon: '🖼️' },
   { href: '/dashboard/video', label: 'الفيديو', icon: '🎬' },
   { href: '/dashboard/music', label: 'الموسيقى', icon: '🎵' },
@@ -161,11 +161,32 @@ export default function HomePage() {
   const [busy, setBusy] = useState(false)
   const [tick, setTick] = useState(0)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [landingCfg, setLandingCfg] = useState<any>(null)
 
   useEffect(() => {
-    const id = setInterval(() => setTick((n) => (n + 1) % HOME_TICKER.length), 3500)
+    const id = setInterval(() => setTick((n) => (n + 1) % tickers.length), 3500)
     return () => clearInterval(id)
   }, [])
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const res = await fetch('/api/owner/settings', { cache: 'no-store' })
+        const data = await res.json().catch(() => ({}))
+        if (data?.settings?.landing) setLandingCfg(data.settings.landing)
+      } catch { /* */ }
+    })()
+  }, [])
+
+  
+  const L = (key: string, fallback: string) =>
+    (landingCfg && landingCfg[key]) || fallback
+
+  const tickers = [
+    L('ticker1', HOME_TICKER[0]),
+    L('ticker2', HOME_TICKER[1]),
+    L('ticker3', HOME_TICKER[2]),
+  ]
 
   async function runPrompt() {
     const text = prompt.trim()
@@ -268,7 +289,7 @@ export default function HomePage() {
             onClick={() => setSidebarOpen(false)}
             className="block text-center rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 text-sm"
           >
-            ابدأ الآن مجاناً
+            {L('ctaPrimary', 'ابدأ الآن')} مجاناً
           </Link>
           <Link
             href="/login"
@@ -324,7 +345,7 @@ export default function HomePage() {
         <section className="max-w-3xl mx-auto text-center space-y-5">
           <div className="inline-flex items-center gap-2 rounded-full border border-slate-700/80 bg-slate-900/60 px-3 py-1 text-[11px] text-slate-400">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            منصة عربية للذكاء الاصطناعي
+            {L('badgeText', 'منصة عربية للذكاء الاصطناعي')}
           </div>
 
           <AnimatedPlatformName size="xl" />
@@ -338,13 +359,13 @@ export default function HomePage() {
             key={tick}
             className="text-sm text-amber-200/90 min-h-[1.5rem] transition-opacity duration-500"
           >
-            {HOME_TICKER[tick]}
+            {tickers[tick % tickers.length]}
           </p>
 
           {/* مربع الطلب */}
           <div className="mt-2 rounded-3xl border border-slate-700/80 bg-slate-900/70 shadow-2xl shadow-black/40 p-4 sm:p-5 text-right backdrop-blur-sm">
             <label className="block text-xs text-slate-400 mb-2">
-              ماذا في خاطرك اليوم؟ اكتب طلبك وسنقوم بتنفيذه
+              {L('promptLabel', 'ماذا في خاطرك اليوم؟ اكتب طلبك وسنقوم بتنفيذه')}
             </label>
             <textarea
               value={prompt}
@@ -383,13 +404,13 @@ export default function HomePage() {
 
           <div className="flex flex-wrap justify-center gap-3 pt-2">
             <Link
-              href="/register"
+              href={L('ctaPrimaryHref', '/register')}
               className="px-7 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 font-bold text-white shadow-xl shadow-blue-900/30 transition"
             >
               ابدأ الآن
             </Link>
             <Link
-              href="/dashboard"
+              href={L('ctaSecondaryHref', '/dashboard')}
               className="px-7 py-3 rounded-2xl border border-slate-600 bg-slate-900/50 text-slate-200 hover:border-slate-400 hover:bg-slate-900 transition"
             >
               لوحة المستخدم
@@ -419,7 +440,7 @@ export default function HomePage() {
         {/* ===== الخدمات ===== */}
         <section className="max-w-4xl mx-auto mt-14">
           <div className="text-center mb-7">
-            <h2 className="text-xl sm:text-2xl font-bold text-white">خدمات المنصة</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">{L('servicesTitle', 'خدمات المنصة')}</h2>
             <p className="text-sm text-slate-400 mt-1">
               كل خدمة بأيقونتها ووصفها — اضغط للانتقال إلى لوحة التحكم
             </p>
@@ -460,7 +481,7 @@ export default function HomePage() {
             <span className="inline-block text-[11px] font-semibold tracking-wide text-amber-400/90 border border-amber-500/30 rounded-full px-3 py-0.5 mb-2">
               قريباً
             </span>
-            <h2 className="text-xl sm:text-2xl font-bold text-white">مزايا قيد التطوير</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">{L('comingTitle', 'مزايا قيد التطوير')}</h2>
             <p className="text-sm text-slate-400 mt-1">
               نعمل على إضافات جديدة لتجربة أقوى — ترقّب التحديثات
             </p>
@@ -491,7 +512,7 @@ export default function HomePage() {
         {/* ===== قوالب جاهزة ===== */}
         <section className="max-w-4xl mx-auto mt-16">
           <div className="text-center mb-7">
-            <h2 className="text-xl sm:text-2xl font-bold text-white">قوالب جاهزة للتجربة</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">{L('templatesTitle', 'قوالب جاهزة للتجربة')}</h2>
             <p className="text-sm text-slate-400 mt-1">
               اضغط قالباً ليُنسخ إلى مربع الطلب أعلاه — عدّله ثم اضغط تنفيذ
             </p>
@@ -527,7 +548,7 @@ export default function HomePage() {
         {/* ===== كيف تستخدم المنصة ===== */}
         <section className="max-w-4xl mx-auto mt-16">
           <div className="text-center mb-7">
-            <h2 className="text-xl sm:text-2xl font-bold text-white">كيف تستخدم أدوات المنصة؟</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">{L('guideTitle', 'كيف تستخدم أدوات المنصة؟')}</h2>
             <p className="text-sm text-slate-400 mt-1">خمس خطوات بسيطة من التسجيل حتى التحميل</p>
           </div>
           <ol className="space-y-3">
@@ -551,7 +572,7 @@ export default function HomePage() {
         {/* ===== مقالات قصيرة ===== */}
         <section className="max-w-4xl mx-auto mt-16">
           <div className="text-center mb-7">
-            <h2 className="text-xl sm:text-2xl font-bold text-white">تعرّف على خدمات المنصة</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">{L('articlesTitle', 'تعرّف على خدمات المنصة')}</h2>
             <p className="text-sm text-slate-400 mt-1">مقالات مختصرة تشرح كل خدمة وكيف تفيدك</p>
           </div>
           <div className="space-y-4">

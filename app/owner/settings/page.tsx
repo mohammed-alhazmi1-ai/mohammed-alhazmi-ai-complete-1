@@ -10,6 +10,21 @@ export default function OwnerSettingsHub() {
 
       <div className="space-y-4">
         <Link
+          href="/owner/settings/landing"
+          className="block rounded-2xl border border-slate-700 bg-slate-900/80 p-5 hover:border-blue-500 transition"
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">🏠</span>
+            <div>
+              <h2 className="font-bold text-white text-base">تعديل صفحة الهبوط</h2>
+              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                النصوص · الأزرار · الشريط المتحرك · عناوين الأقسام · عبارات التسجيل
+              </p>
+            </div>
+          </div>
+        </Link>
+
+        <Link
           href="/owner/settings/general"
           className="block rounded-2xl border border-slate-700 bg-slate-900/80 p-5 hover:border-blue-500 transition"
         >
