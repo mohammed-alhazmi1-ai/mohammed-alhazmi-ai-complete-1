@@ -7,7 +7,7 @@ import Link from 'next/link'
 
 type Msg = {
   id: string
-  role: 'user' | 'assistant' | 'system'
+  role: 'user' as const | 'assistant' | 'system'
   content: string
   imageUrl?: string
   provider?: string
@@ -256,7 +256,7 @@ export default function ServiceWorkspace({ service }: { service: string }) {
     if (!prompt || loading) return
     setError('')
     setInput('')
-    const userMsg: Msg = { id: uid(), role: 'user', content: prompt }
+    const userMsg: Msg = { id: uid(), role: 'user' as const, content: prompt }
     setMessages((m) => {
       const next = [...m, userMsg]
       persistMessages(next)
@@ -311,7 +311,7 @@ export default function ServiceWorkspace({ service }: { service: string }) {
             ...m,
             {
               id: uid(),
-              role: 'assistant',
+              role: 'assistant' as const,
               content: String(err),
               provider: data.provider,
               model: data.model,
@@ -332,7 +332,7 @@ export default function ServiceWorkspace({ service }: { service: string }) {
           ...m,
           {
             id: uid(),
-            role: 'assistant',
+            role: 'assistant' as const,
             content: String(out),
             imageUrl: data.imageUrl || data.url || undefined,
             provider: data.provider,
@@ -364,12 +364,12 @@ export default function ServiceWorkspace({ service }: { service: string }) {
   function openServerJob(job: any) {
     const msgs: Msg[] = []
     if (job.prompt) {
-      msgs.push({ id: uid(), role: 'user', content: String(job.prompt) })
+      msgs.push({ id: uid(), role: 'user' as const, content: String(job.prompt) })
     }
     if (job.result || job.resultUrl) {
       msgs.push({
         id: uid(),
-        role: 'assistant',
+        role: 'assistant' as const,
         content: String(job.result || (job.resultUrl ? 'تم التوليد' : '')),
         imageUrl: job.resultUrl || undefined,
         provider: job.provider,
