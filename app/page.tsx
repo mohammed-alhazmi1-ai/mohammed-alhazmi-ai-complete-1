@@ -404,7 +404,7 @@ export default function HomePage() {
         </section>
 
         {/* ===== إعلان 2: أسفل الخدمات ===== */}
-        <section className="max-w-3xl mx-auto mt-10">
+        <section className="max-w-3xl mx-auto mt-10 mb-2">
           <HilltopBannerBelow />
         </section>
 
