@@ -232,19 +232,7 @@ export default function DashboardPage() {
         <div className="flex flex-row flex-nowrap items-center gap-2 min-w-max pb-1">
           <UsageBar />
         </div>
-        <div className="flex flex-row flex-nowrap items-center gap-1.5 min-w-max text-[11px] sm:text-xs mt-2">
-          <a href="/dashboard/images" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">الصور</a>
-          <a href="/dashboard/video" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">الفيديو</a>
-          <a href="/dashboard/music" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">الموسيقى</a>
-          <a href="/dashboard/code" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">البرمجة</a>
-          <a href="/dashboard/chat" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">الدردشة</a>
-          <a href="/dashboard/bot" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">المساعد</a>
-          <a href="/dashboard/jobs" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">الطلبات</a>
-          <a href="/dashboard/files" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">ملفاتي</a>
-          <a href="/dashboard/plans" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">الخطط</a>
-          <a href="/dashboard/billing" className="px-2.5 py-1.5 rounded-lg bg-emerald-800 hover:bg-emerald-700 whitespace-nowrap">شحن REMO</a>
-          <a href="/dashboard/gift" className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 whitespace-nowrap">كود هدية</a>
-        </div>
+        {/* أزرار الخدمات في الهيدر فقط */ null}
       </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-row flex-wrap items-center justify-between gap-2">
@@ -346,34 +334,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-6">
-            {SERVICES.map((section) => (
-              <div
-                key={section.id}
-                className={`rounded-3xl border bg-gradient-to-l ${section.color} p-6 md:p-8`}
-              >
-                <div className="flex items-center gap-3 mb-5">
-                  <span className="text-3xl">{section.icon}</span>
-                  <h3 className="text-xl font-bold text-white">{section.title}</h3>
-                </div>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {section.services.map((svc) => (
-                    <div
-                      key={svc.title}
-                      className="rounded-2xl bg-slate-950/70 border border-slate-800/80 p-5 flex flex-col"
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-3">
-                        <h4 className="font-bold text-white text-sm">{svc.title}</h4>
-                        {svc.badge && (
-                          <span
-                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${
-                              svc.badge === "متاح"
-                                ? "bg-emerald-950 text-emerald-400 border border-emerald-800"
-                                : "bg-slate-800 text-slate-400 border border-slate-700"
-                            }`}
-                          >
-                            {svc.badge}
-                          </span>
-                        )}
+            {/* أزرار الخدمات في الهيدر فقط */ null}
                       </div>
                       <ul className="space-y-1.5 text-xs text-slate-400 flex-1 mb-4">
                         {svc.items.map((item) => (
