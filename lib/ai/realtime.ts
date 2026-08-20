@@ -40,7 +40,7 @@ function replicateToken() {
   return env('REPLICATE_API_TOKEN') || env('REPLICATE_API_KEY')
 }
 
-function normProvider(p?: string): 'gemini' | 'huggingface' | 'replicate' | 'auto' {
+function normProvider(p?: string): 'gemini' | 'huggingface' | 'replicate' | 'pollinations' | 'auto' {
   const x = (p || 'auto').toLowerCase()
   if (x.includes('openai') || x.includes('gpt')) return 'auto'
   if (x.includes('gemini') || x.includes('google')) return 'gemini'
@@ -51,10 +51,10 @@ function normProvider(p?: string): 'gemini' | 'huggingface' | 'replicate' | 'aut
 
 /** ترتيب المحاولة: المفضّل أولاً ثم الباقي */
 function orderProviders(
-  preferred: 'gemini' | 'huggingface' | 'replicate' | 'auto',
+  preferred: 'gemini' | 'huggingface' | 'replicate' | 'pollinations' | 'auto',
   forType: GenType
-): Array<'gemini' | 'huggingface' | 'replicate'> {
-  const all: Array<'gemini' | 'huggingface' | 'replicate'> =
+): Array<'gemini' | 'huggingface' | 'replicate' | 'pollinations'> {
+  const all: Array<'gemini' | 'huggingface' | 'replicate' | 'pollinations'> =
     forType === 'images' || forType === 'video' || forType === 'music'
       ? ['pollinations', 'replicate', 'huggingface', 'gemini']
       : ['pollinations', 'gemini', 'huggingface', 'replicate']
@@ -490,7 +490,7 @@ async function pollinationsImage(prompt: string): Promise<GenResult> {
 
 
 async function runOne(
-  provider: 'gemini' | 'huggingface' | 'replicate',
+  provider: 'gemini' | 'huggingface' | 'replicate' | 'pollinations',
   type: GenType,
   prompt: string
 ): Promise<GenResult> {
