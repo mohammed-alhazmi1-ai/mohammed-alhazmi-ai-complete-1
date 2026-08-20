@@ -305,8 +305,7 @@ export default function HomePage() {
             <LanguageSwitcher compact />
             <Link
               href="/login"
-              className="px-3 py-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 transition hidden sm:inline"
-              className="hidden xs:inline px-3 py-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 transition sm:inline"
+              className="hidden sm:inline px-3 py-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 transition"
             >
               دخول
             </Link>
