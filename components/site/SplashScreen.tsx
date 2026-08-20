@@ -5,11 +5,9 @@ import { useEffect, useState } from 'react'
 type Props = {
   durationMs?: number
   logoSrc?: string
-  /** رسالة الزيارة الأولى لصفحة الهبوط */
   message?: string
 }
 
-const DONE_KEY = 'remo_splash_done'
 const FORCE_KEY = 'remo_splash_force'
 const MSG_KEY = 'remo_splash_message'
 
@@ -21,18 +19,17 @@ export default function SplashScreen({
   logoSrc = '/logo-splash.png',
   message = 'جاري تجهيز المنصة…',
 }: Props) {
-  const [show, setShow] = useState(false)
+  const [show, setShow] = useState(true)
   const [fade, setFade] = useState(false)
   const [logoReady, setLogoReady] = useState(false)
   const [progress, setProgress] = useState(0)
   const [msg, setMsg] = useState(message)
 
+  // كل تحميل / تحديث للصفحة → إظهار الشاشة
   useEffect(() => {
     try {
       const force = sessionStorage.getItem(FORCE_KEY) === '1'
-      const done = sessionStorage.getItem(DONE_KEY) === '1'
       const custom = sessionStorage.getItem(MSG_KEY)
-
       if (force) {
         sessionStorage.removeItem(FORCE_KEY)
         setMsg(custom || AUTH_MSG)
@@ -41,22 +38,19 @@ export default function SplashScreen({
         } catch {
           /* */
         }
-        setShow(true)
-        return
-      }
-
-      // زيارة عادية: تجهيز المنصة مرة في الجلسة
-      if (!done) {
+      } else {
         setMsg(message)
-        setShow(true)
-        return
       }
-      setShow(false)
     } catch {
-      setShow(true)
+      setMsg(message)
     }
+    setShow(true)
+    setFade(false)
+    setProgress(0)
+    setLogoReady(false)
   }, [message])
 
+  // تحميل الشعار
   useEffect(() => {
     if (!show) return
     let cancelled = false
@@ -77,22 +71,19 @@ export default function SplashScreen({
     }
   }, [show, logoSrc])
 
+  // العدّ بعد جاهزية الصورة
   useEffect(() => {
     if (!show || !logoReady) return
+
     const fadeAt = Math.max(800, durationMs - 700)
     const tFade = setTimeout(() => setFade(true), fadeAt)
-    const tHide = setTimeout(() => {
-      setShow(false)
-      try {
-        sessionStorage.setItem(DONE_KEY, '1')
-      } catch {
-        /* */
-      }
-    }, durationMs)
+    const tHide = setTimeout(() => setShow(false), durationMs)
+
     const start = Date.now()
     const tick = setInterval(() => {
       setProgress(Math.min(100, ((Date.now() - start) / durationMs) * 100))
     }, 50)
+
     return () => {
       clearTimeout(tFade)
       clearTimeout(tHide)
@@ -160,11 +151,10 @@ export default function SplashScreen({
   )
 }
 
-/** بعد نجاح login أو register — قبل router.push */
+/** بعد نجاح login/register */
 export function triggerAuthSplash(customMessage?: string) {
   try {
     sessionStorage.setItem(FORCE_KEY, '1')
-    sessionStorage.removeItem(DONE_KEY)
     sessionStorage.setItem(
       MSG_KEY,
       customMessage ||
