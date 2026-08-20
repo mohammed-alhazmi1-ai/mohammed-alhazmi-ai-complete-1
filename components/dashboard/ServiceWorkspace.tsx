@@ -7,7 +7,7 @@ import Link from 'next/link'
 
 type Msg = {
   id: string
-  role: 'user' as const | 'assistant' | 'system'
+  role: 'user' | 'assistant' | 'system'
   content: string
   imageUrl?: string
   provider?: string
@@ -256,9 +256,9 @@ export default function ServiceWorkspace({ service }: { service: string }) {
     if (!prompt || loading) return
     setError('')
     setInput('')
-    const userMsg: Msg = { id: uid(), role: 'user' as const, content: prompt }
+    const userMsg: Msg = { id: uid(), role: 'user', content: prompt }
     setMessages((m) => {
-      const next = [...m, userMsg]
+          const next: Msg[] = [...m, userMsg]
       persistMessages(next)
       return next
     })
@@ -307,7 +307,7 @@ export default function ServiceWorkspace({ service }: { service: string }) {
           'فشل التوليد'
         setError(String(err))
         setMessages((m) => {
-          const next = [
+          const next: Msg[] = [
             ...m,
             {
               id: uid(),
@@ -328,7 +328,7 @@ export default function ServiceWorkspace({ service }: { service: string }) {
         (data.imageUrl ? 'تم توليد صورة.' : '') ||
         'تم'
       setMessages((m) => {
-        const next = [
+          const next: Msg[] = [
           ...m,
           {
             id: uid(),
