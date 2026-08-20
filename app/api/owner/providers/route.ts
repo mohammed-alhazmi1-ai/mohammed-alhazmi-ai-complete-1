@@ -277,7 +277,7 @@ export async function POST(req: NextRequest) {
         const prisma = await getPrisma()
         await prisma.aiProvider.updateMany({
           where: { slug: 'replicate' },
-          data: { isActive: false },
+          data: { isEnabled: false },
         })
       } catch (e: any) {
         try {
@@ -304,13 +304,13 @@ export async function POST(req: NextRequest) {
             name: s.name,
             category: s.category,
             priority: s.priority,
-            isActive: true,
+            isEnabled: true,
           } as any,
           update: {
             name: s.name,
             category: s.category,
             priority: s.priority,
-            isActive: true,
+            isEnabled: true,
           } as any,
         })
       } catch (e: any) {
@@ -356,7 +356,7 @@ export async function POST(req: NextRequest) {
           if (keyRow) {
             await prisma.providerKey.update({
               where: { id: keyRow.id },
-              data: { keyValue: val, isActive: true },
+              data: { keyValue: val, isEnabled: true },
             })
           } else {
             await prisma.providerKey.create({
@@ -364,7 +364,7 @@ export async function POST(req: NextRequest) {
                 providerId,
                 keyName: s.envKey,
                 keyValue: val,
-                isActive: true,
+                isEnabled: true,
               },
             })
           }
@@ -504,11 +504,11 @@ export async function POST(req: NextRequest) {
       if (existing) {
         await prisma.providerKey.update({
           where: { id: existing.id },
-          data: { keyValue, isActive: true },
+          data: { keyValue, isEnabled: true },
         })
       } else {
         await prisma.providerKey.create({
-          data: { providerId, keyName, keyValue, isActive: true },
+          data: { providerId, keyName, keyValue, isEnabled: true },
         })
       }
       await prisma.aiProvider.update({
