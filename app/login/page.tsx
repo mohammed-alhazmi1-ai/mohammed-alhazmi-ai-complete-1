@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { getSupabase, isSupabaseConfigured, supabaseConfigError } from '@/lib/supabase';
+import { triggerAuthSplash } from '@/components/site/SplashScreen'
 
 const supabase = getSupabase();
 

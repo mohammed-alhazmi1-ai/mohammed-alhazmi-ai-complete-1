@@ -3,77 +3,96 @@
 import { useEffect, useState } from 'react'
 
 type Props = {
-  /** الحد الأدنى للعرض بعد اكتمال تحميل الشعار (مللي ثانية) */
   durationMs?: number
   logoSrc?: string
+  /** رسالة الزيارة الأولى لصفحة الهبوط */
   message?: string
 }
 
+const DONE_KEY = 'remo_splash_done'
+const FORCE_KEY = 'remo_splash_force'
+const MSG_KEY = 'remo_splash_message'
+
+const AUTH_MSG =
+  'انتظر قليلاً… سيتم تحويلك الآن إلى لوحة التحكم وصفحة الخدمات'
+
 export default function SplashScreen({
-  durationMs = 4500,
+  durationMs = 4800,
   logoSrc = '/logo-splash.png',
   message = 'جاري تجهيز المنصة…',
 }: Props) {
-  const [show, setShow] = useState(true)
+  const [show, setShow] = useState(false)
   const [fade, setFade] = useState(false)
   const [logoReady, setLogoReady] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [msg, setMsg] = useState(message)
 
-  // تحميل مسبق للشعار — لا نبدأ العدّ إلا بعد الجاهزية (أو مهلة أمان)
   useEffect(() => {
     try {
-      if (sessionStorage.getItem('remo_splash_done') === '1') {
-        setShow(false)
+      const force = sessionStorage.getItem(FORCE_KEY) === '1'
+      const done = sessionStorage.getItem(DONE_KEY) === '1'
+      const custom = sessionStorage.getItem(MSG_KEY)
+
+      if (force) {
+        sessionStorage.removeItem(FORCE_KEY)
+        setMsg(custom || AUTH_MSG)
+        try {
+          sessionStorage.removeItem(MSG_KEY)
+        } catch {
+          /* */
+        }
+        setShow(true)
         return
       }
-    } catch {
-      /* */
-    }
 
+      // زيارة عادية: تجهيز المنصة مرة في الجلسة
+      if (!done) {
+        setMsg(message)
+        setShow(true)
+        return
+      }
+      setShow(false)
+    } catch {
+      setShow(true)
+    }
+  }, [message])
+
+  useEffect(() => {
+    if (!show) return
     let cancelled = false
     const img = new Image()
     img.onload = () => {
       if (!cancelled) setLogoReady(true)
     }
     img.onerror = () => {
-      // حتى لو فشل التحميل نعرض الشاشة بالنص
       if (!cancelled) setLogoReady(true)
     }
     img.src = logoSrc
-
-    // مهلة أمان: لا نعلّق أكثر من 4 ثوانٍ بانتظار الصورة
     const safety = setTimeout(() => {
       if (!cancelled) setLogoReady(true)
     }, 4000)
-
     return () => {
       cancelled = true
       clearTimeout(safety)
     }
-  }, [logoSrc])
+  }, [show, logoSrc])
 
-  // بعد جاهزية الشعار: نعرض المدة كاملة ثم اختفاء تدريجي
   useEffect(() => {
     if (!show || !logoReady) return
-
     const fadeAt = Math.max(800, durationMs - 700)
     const tFade = setTimeout(() => setFade(true), fadeAt)
     const tHide = setTimeout(() => {
       setShow(false)
       try {
-        sessionStorage.setItem('remo_splash_done', '1')
+        sessionStorage.setItem(DONE_KEY, '1')
       } catch {
         /* */
       }
     }, durationMs)
-
-    // شريط تقدّم بسيط
     const start = Date.now()
     const tick = setInterval(() => {
-      const p = Math.min(100, ((Date.now() - start) / durationMs) * 100)
-      setProgress(p)
+      setProgress(Math.min(100, ((Date.now() - start) / durationMs) * 100))
     }, 50)
-
     return () => {
       clearTimeout(tFade)
       clearTimeout(tHide)
@@ -93,14 +112,13 @@ export default function SplashScreen({
       aria-busy="true"
     >
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(37,99,235,0.28)_0%,_transparent_70%)]" />
-
-      <div className="relative flex flex-col items-center gap-7 px-6">
+      <div className="relative flex flex-col items-center gap-7 px-6 max-w-sm text-center">
         <div className="relative">
           <div className="absolute inset-0 rounded-full bg-blue-500/25 blur-3xl animate-pulse" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={logoSrc}
-            alt="منصة محمد الحزمي للذكاء الاصطناعي"
+            alt="منصة محمد الحزمي"
             width={224}
             height={224}
             className={`relative w-48 h-48 sm:w-56 sm:h-56 object-contain transition-opacity duration-500 ${
@@ -112,15 +130,12 @@ export default function SplashScreen({
             onLoad={() => setLogoReady(true)}
           />
         </div>
-
-        <div className="text-center space-y-2">
-          <p className="text-slate-100 text-base sm:text-lg font-semibold tracking-wide">
-            {message}
+        <div className="space-y-2">
+          <p className="text-slate-100 text-base sm:text-lg font-semibold tracking-wide leading-relaxed">
+            {msg}
           </p>
           <p className="text-slate-500 text-xs">منصة محمد الحزمي للذكاء الاصطناعي</p>
         </div>
-
-        {/* شريط تحميل أوضح */}
         <div className="w-52 h-1.5 rounded-full bg-slate-800 overflow-hidden">
           <div
             className="h-full rounded-full bg-gradient-to-l from-blue-500 via-sky-400 to-amber-400 transition-[width] duration-100 ease-linear"
@@ -128,7 +143,6 @@ export default function SplashScreen({
           />
         </div>
       </div>
-
       <style jsx global>{`
         @keyframes splashPulse {
           0%,
@@ -144,4 +158,19 @@ export default function SplashScreen({
       `}</style>
     </div>
   )
+}
+
+/** بعد نجاح login أو register — قبل router.push */
+export function triggerAuthSplash(customMessage?: string) {
+  try {
+    sessionStorage.setItem(FORCE_KEY, '1')
+    sessionStorage.removeItem(DONE_KEY)
+    sessionStorage.setItem(
+      MSG_KEY,
+      customMessage ||
+        'انتظر قليلاً… سيتم تحويلك الآن إلى لوحة التحكم وصفحة الخدمات'
+    )
+  } catch {
+    /* */
+  }
 }
