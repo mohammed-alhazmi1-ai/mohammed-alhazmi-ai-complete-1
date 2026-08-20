@@ -232,7 +232,7 @@ export default function DashboardPage() {
         <div className="flex flex-row flex-nowrap items-center gap-2 min-w-max pb-1">
           <UsageBar />
         </div>
-        {/* أزرار الخدمات في الهيدر فقط */ null}
+        
       </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-row flex-wrap items-center justify-between gap-2">
@@ -334,7 +334,28 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-6">
-            {/* أزرار الخدمات في الهيدر فقط */ null}
+            {SERVICES.map((section) => (
+              <div
+                key={section.id}
+                className={`rounded-2xl border bg-gradient-to-br ${section.color} p-5`}
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-2xl">{section.icon}</span>
+                  <h3 className="text-lg font-bold text-white">{section.title}</h3>
+                </div>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {section.services.map((svc) => (
+                    <div
+                      key={svc.title}
+                      className="rounded-xl bg-slate-950/60 border border-slate-800 p-4 flex flex-col"
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h4 className="font-semibold text-slate-100 text-sm">{svc.title}</h4>
+                        {svc.badge && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 shrink-0">
+                            {svc.badge}
+                          </span>
+                        )}
                       </div>
                       <ul className="space-y-1.5 text-xs text-slate-400 flex-1 mb-4">
                         {svc.items.map((item) => (
@@ -344,7 +365,7 @@ export default function DashboardPage() {
                           </li>
                         ))}
                       </ul>
-                      {svc.href && svc.href !== "#" ? (
+                      {svc.href && svc.href !== '#' ? (
                         <Link
                           href={svc.href}
                           className="block text-center rounded-xl bg-blue-600 hover:bg-blue-500 py-2.5 text-sm font-bold transition"
