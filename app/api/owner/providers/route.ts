@@ -275,14 +275,14 @@ export async function POST(req: NextRequest) {
     if (action === 'disable-replicate') {
       try {
         const prisma = await getPrisma()
-        await prisma.provider.updateMany({
+        await prisma.aiProvider.updateMany({
           where: { slug: 'replicate' },
           data: { isActive: false },
         })
       } catch (e: any) {
         try {
           const prisma = await getPrisma()
-          await prisma.provider.updateMany({
+          await prisma.aiProvider.updateMany({
             where: { slug: 'replicate' },
             data: { enabled: false } as any,
           })
@@ -297,7 +297,7 @@ export async function POST(req: NextRequest) {
       const prisma = await getPrisma()
       const s = SEED.find((x) => x.slug === 'pollinations')!
       try {
-        await prisma.provider.upsert({
+        await prisma.aiProvider.upsert({
           where: { slug: 'pollinations' },
           create: {
             slug: 'pollinations',
