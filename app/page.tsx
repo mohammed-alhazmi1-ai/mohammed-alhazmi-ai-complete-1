@@ -8,6 +8,7 @@ import SiteLogo from '@/components/site/SiteLogo'
 import SocialButtons from '@/components/site/SocialButtons'
 import HilltopBanner from '@/components/site/HilltopBanner'
 import HilltopBannerBelow from '@/components/site/HilltopBannerBelow'
+import LanguageSwitcher from '@/components/site/LanguageSwitcher'
 
 
 const SIDE_LINKS = [
@@ -24,6 +25,47 @@ const SIDE_LINKS = [
   { href: '/dashboard/plans', label: 'الباقات', icon: '💎' },
   { href: '/about', label: 'من نحن', icon: 'ℹ️' },
   { href: '/contact', label: 'اتصل بنا', icon: '📩' },
+]
+
+
+const HOME_TEMPLATES = [
+  { service: 'صور', icon: '🖼️', title: 'شعار احترافي', prompt: 'صمم شعاراً حديثاً لمنصة ذكاء اصطناعي باللونين الأزرق والذهبي' },
+  { service: 'صور', icon: '🖼️', title: 'منشور سوشيال', prompt: 'صورة إعلان جذاب لمتجر إلكتروني عربي خلفية داكنة' },
+  { service: 'فيديو', icon: '🎬', title: 'إعلان قصير', prompt: 'وصف فيديو 15 ثانية يروّج لتطبيق جوال عربي' },
+  { service: 'موسيقى', icon: '🎵', title: 'شيلة ترحيب', prompt: 'اكتب كلمات شيلة ترحيبية بأسلوب نجدي فصيح' },
+  { service: 'برمجة', icon: '💻', title: 'صفحة هبوط', prompt: 'اكتب كود HTML و Tailwind لصفحة هبوط بسيطة بالعربي' },
+  { service: 'دردشة', icon: '💬', title: 'خطة محتوى', prompt: 'اقترح خطة محتوى أسبوعية لحساب إنستغرام تعليمي' },
+]
+
+const HOME_ARTICLES = [
+  {
+    icon: '🖼️',
+    title: 'توليد الصور بالذكاء الاصطناعي',
+    body: 'من خلال قسم الصور يمكنك تحويل أي وصف نصي إلى صورة عالية الجودة، أو تحسين صورة قديمة ورفع دقتها. اكتب وصفاً واضحاً (المشهد، الألوان، الأسلوب) ثم اختر المزود واضغط توليد. كل عملية تستهلك رصيداً من نوع REMO حسب الخطة.',
+  },
+  {
+    icon: '🎬',
+    title: 'إنشاء مقاطع فيديو من النص',
+    body: 'قسم الفيديو يساعدك على صياغة مشاهد وإعلانات قصيرة. ابدأ بفكرة واضحة للمدة والأسلوب، واستخدم القوالب الجاهزة إن وُجدت. النتائج تعتمد على المزود المتاح ورصيدك. احفظ الروابط أو حمّل الملفات من زر التحميل داخل مساحة العمل.',
+  },
+  {
+    icon: '🎵',
+    title: 'كلمات وألحان وموسيقى',
+    body: 'في قسم الموسيقى يمكنك طلب كلمات شيلة أو زفة أو وصف لحني. المنصة تولّد النص عبر النماذج اللغوية، وقد يتوفر ملف صوتي عند توفر مزود الصوت ورصيد كافٍ. راجع النتيجة وعدّل الطلب في نفس المحادثة لتحسين المخرجات.',
+  },
+  {
+    icon: '💻',
+    title: 'مساعدة البرمجة للمواقع والتطبيقات',
+    body: 'قسم البرمجة مصمم لكتابة وتحسين أكواد الواجهات وواجهات API. حدّد اللغة والإطار (مثل Next.js أو React) واذكر المطلوب بدقة. انسخ الكود الناتج إلى مشروعك، واختبره محلياً قبل النشر.',
+  },
+]
+
+const HOME_GUIDE = [
+  { step: '1', title: 'أنشئ حساباً', text: 'من «إنشاء حساب» سجّل بياناتك ثم سجّل الدخول للوصول للوحة التحكم.' },
+  { step: '2', title: 'تعرّف على رصيدك', text: 'في أعلى لوحة المستخدم يظهر رصيد REMO ونوع الخطة. الخطط المجانية محدودة.' },
+  { step: '3', title: 'اختر الخدمة', text: 'من القائمة الجانبية أو بطاقات الخدمات افتح الصور أو الفيديو أو غيرها.' },
+  { step: '4', title: 'اكتب الطلب بوضوح', text: 'صف النتيجة المطلوبة، أو استخدم قالباً جاهزاً ثم عدّله.' },
+  { step: '5', title: 'ولّد وحمّل', text: 'اضغط إرسال، انتظر النتيجة، ثم استخدم زر التحميل أو احفظ المحادثة من السجل.' },
 ]
 
 const HOME_TICKER = [
@@ -218,6 +260,9 @@ export default function HomePage() {
         </nav>
 
         <div className="p-4 border-t border-slate-800 space-y-2">
+          <div className="flex justify-center pb-2">
+            <LanguageSwitcher />
+          </div>
           <Link
             href="/register"
             onClick={() => setSidebarOpen(false)}
@@ -257,8 +302,10 @@ export default function HomePage() {
             </span>
           </div>
           <div className="flex items-center gap-2 text-sm shrink-0">
+            <LanguageSwitcher compact />
             <Link
               href="/login"
+              className="px-3 py-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 transition hidden sm:inline"
               className="hidden xs:inline px-3 py-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 transition sm:inline"
             >
               دخول
@@ -441,6 +488,90 @@ export default function HomePage() {
         </section>
 
         {/* تواصل */}
+
+        {/* ===== قوالب جاهزة ===== */}
+        <section className="max-w-4xl mx-auto mt-16">
+          <div className="text-center mb-7">
+            <h2 className="text-xl sm:text-2xl font-bold text-white">قوالب جاهزة للتجربة</h2>
+            <p className="text-sm text-slate-400 mt-1">
+              اضغط قالباً ليُنسخ إلى مربع الطلب أعلاه — عدّله ثم اضغط تنفيذ
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {HOME_TEMPLATES.map((tpl) => (
+              <button
+                key={tpl.title}
+                type="button"
+                onClick={() => {
+                  setPrompt(tpl.prompt)
+                  try {
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  } catch {
+                    /* */
+                  }
+                }}
+                className="text-right rounded-2xl border border-slate-800 bg-slate-900/60 p-4 hover:border-blue-500/60 hover:bg-slate-900 transition"
+              >
+                <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                  <span>{tpl.icon}</span>
+                  <span>{tpl.service}</span>
+                </div>
+                <div className="font-bold text-slate-100 text-sm">{tpl.title}</div>
+                <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                  {tpl.prompt}
+                </p>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* ===== كيف تستخدم المنصة ===== */}
+        <section className="max-w-4xl mx-auto mt-16">
+          <div className="text-center mb-7">
+            <h2 className="text-xl sm:text-2xl font-bold text-white">كيف تستخدم أدوات المنصة؟</h2>
+            <p className="text-sm text-slate-400 mt-1">خمس خطوات بسيطة من التسجيل حتى التحميل</p>
+          </div>
+          <ol className="space-y-3">
+            {HOME_GUIDE.map((g) => (
+              <li
+                key={g.step}
+                className="flex gap-4 rounded-2xl border border-slate-800 bg-slate-900/40 p-4 items-start"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600/20 text-blue-400 font-bold text-sm border border-blue-600/30">
+                  {g.step}
+                </span>
+                <div>
+                  <h3 className="font-bold text-slate-100 text-sm">{g.title}</h3>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">{g.text}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        {/* ===== مقالات قصيرة ===== */}
+        <section className="max-w-4xl mx-auto mt-16">
+          <div className="text-center mb-7">
+            <h2 className="text-xl sm:text-2xl font-bold text-white">تعرّف على خدمات المنصة</h2>
+            <p className="text-sm text-slate-400 mt-1">مقالات مختصرة تشرح كل خدمة وكيف تفيدك</p>
+          </div>
+          <div className="space-y-4">
+            {HOME_ARTICLES.map((a) => (
+              <article
+                key={a.title}
+                className="rounded-2xl border border-slate-800 bg-gradient-to-b from-slate-900/80 to-slate-950 p-5 sm:p-6"
+              >
+                <h3 className="font-bold text-slate-50 text-base flex items-center gap-2">
+                  <span className="text-xl">{a.icon}</span>
+                  {a.title}
+                </h3>
+                <p className="text-sm text-slate-400 mt-3 leading-7">{a.body}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+
         <div className="max-w-3xl mx-auto mt-14">
           <SocialButtons variant="landing" />
         </div>
