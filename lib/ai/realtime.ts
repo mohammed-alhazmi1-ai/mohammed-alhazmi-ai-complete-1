@@ -56,8 +56,8 @@ function orderProviders(
 ): Array<'gemini' | 'huggingface' | 'replicate' | 'pollinations'> {
   const all: Array<'gemini' | 'huggingface' | 'replicate' | 'pollinations'> =
     forType === 'images' || forType === 'video' || forType === 'music'
-      ? ['pollinations', 'replicate', 'huggingface', 'gemini']
-      : ['pollinations', 'gemini', 'huggingface', 'replicate']
+      ? ['pollinations', 'huggingface', 'gemini']
+      : ['pollinations', 'gemini', 'huggingface']
 
   if (preferred === 'auto') return all
   return [preferred, ...all.filter((p) => p !== preferred)]

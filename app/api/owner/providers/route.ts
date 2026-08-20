@@ -33,10 +33,10 @@ const SEED: SeedProvider[] = [
   {
     slug: 'pollinations',
     name: 'Pollinations',
-    category: 'image',
-    priority: 5,
+    category: 'image,video,music,text',
+    priority: 1,
     defaultModel: 'flux',
-    costPerUse: 15,
+    costPerUse: 10,
     envKey: 'POLLINATIONS_API_KEY',
   },
 
@@ -70,6 +70,13 @@ const SEED: SeedProvider[] = [
 ]
 
 function envVal(name: string) {
+  if (name === 'POLLINATIONS_API_KEY') {
+    return (
+      process.env.POLLINATIONS_API_KEY ||
+      process.env.POLLINATIONS_KEY ||
+      ''
+    ).trim()
+  }
   if (name === 'REPLICATE_API_TOKEN') {
     return (process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_KEY || '').trim()
   }
@@ -264,8 +271,57 @@ export async function POST(req: NextRequest) {
     const action = String(body.action || '')
     const prisma = await getPrisma()
 
+    
+    if (action === 'disable-replicate') {
+      try {
+        const prisma = await getPrisma()
+        await prisma.provider.updateMany({
+          where: { slug: 'replicate' },
+          data: { isActive: false },
+        })
+      } catch (e: any) {
+        try {
+          const prisma = await getPrisma()
+          await prisma.provider.updateMany({
+            where: { slug: 'replicate' },
+            data: { enabled: false } as any,
+          })
+        } catch {
+          /* schema may use different field */
+        }
+      }
+      return NextResponse.json({ ok: true, message: 'Replicate متوقف' })
+    }
+
+    if (action === 'ensure-pollinations') {
+      const prisma = await getPrisma()
+      const s = SEED.find((x) => x.slug === 'pollinations')!
+      try {
+        await prisma.provider.upsert({
+          where: { slug: 'pollinations' },
+          create: {
+            slug: 'pollinations',
+            name: s.name,
+            category: s.category,
+            priority: s.priority,
+            isActive: true,
+          } as any,
+          update: {
+            name: s.name,
+            category: s.category,
+            priority: s.priority,
+            isActive: true,
+          } as any,
+        })
+      } catch (e: any) {
+        return NextResponse.json({ ok: false, error: e?.message }, { status: 500 })
+      }
+      return NextResponse.json({ ok: true, message: 'Pollinations مفعّل في القائمة' })
+    }
+
     if (action === 'seed') {
       for (const s of SEED) {
+        const isActive = s.slug !== 'replicate'
         const existing = await prisma.aiProvider
           .findFirst({ where: { slug: s.slug } })
           .catch(() => null)
@@ -318,7 +374,7 @@ export async function POST(req: NextRequest) {
       await prisma.$disconnect()
       return NextResponse.json({
         ok: true,
-        message: 'تم إنشاء/تحديث المزودين (Gemini, Replicate, Hugging Face)',
+        message: 'تم إنشاء/تحديث المزودين (Pollinations مفعّل، Replicate متوقف، Gemini, Hugging Face)',
         providers,
       })
     }
