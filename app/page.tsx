@@ -9,6 +9,23 @@ import SocialButtons from '@/components/site/SocialButtons'
 import HilltopBanner from '@/components/site/HilltopBanner'
 import HilltopBannerBelow from '@/components/site/HilltopBannerBelow'
 
+
+const SIDE_LINKS = [
+  { href: '/', label: 'الرئيسية', icon: '🏠' },
+  { href: '/register', label: 'إنشاء حساب', icon: '✨' },
+  { href: '/login', label: 'تسجيل الدخول', icon: '🔑' },
+  { href: '/dashboard', label: 'لوحة المستخدم', icon: '📊' },
+  { href: '/dashboard/images', label: 'الصور', icon: '🖼️' },
+  { href: '/dashboard/video', label: 'الفيديو', icon: '🎬' },
+  { href: '/dashboard/music', label: 'الموسيقى', icon: '🎵' },
+  { href: '/dashboard/code', label: 'البرمجة', icon: '💻' },
+  { href: '/dashboard/chat', label: 'الدردشة', icon: '💬' },
+  { href: '/dashboard/bot', label: 'المساعد', icon: '🤖' },
+  { href: '/dashboard/plans', label: 'الباقات', icon: '💎' },
+  { href: '/about', label: 'من نحن', icon: 'ℹ️' },
+  { href: '/contact', label: 'اتصل بنا', icon: '📩' },
+]
+
 const HOME_TICKER = [
   'مرحباً بكم في منصة محمد الحزمي للذكاء الاصطناعي',
   'ماذا في خاطرك اليوم؟ اكتب طلبك وسننفّذه',
@@ -101,6 +118,7 @@ export default function HomePage() {
   const [prompt, setPrompt] = useState('')
   const [busy, setBusy] = useState(false)
   const [tick, setTick] = useState(0)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     const id = setInterval(() => setTick((n) => (n + 1) % HOME_TICKER.length), 3500)
@@ -147,9 +165,92 @@ export default function HomePage() {
       </div>
 
       {/* شريط علوي */}
+      {/* خلفية القائمة الجانبية */}
+      {sidebarOpen && (
+        <button
+          type="button"
+          aria-label="إغلاق القائمة"
+          className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* القائمة الجانبية */}
+      <aside
+        className={`fixed top-0 right-0 z-[70] h-full w-[min(100%,20rem)] bg-slate-950 border-l border-slate-800 shadow-2xl transition-transform duration-300 ease-out flex flex-col ${
+          sidebarOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+        aria-hidden={!sidebarOpen}
+      >
+        <div className="flex items-center justify-between gap-2 px-4 py-4 border-b border-slate-800">
+          <div className="flex items-center gap-2 min-w-0">
+            <SiteLogo />
+            <span className="text-sm font-semibold text-slate-200 truncate">القائمة</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            className="h-9 w-9 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white text-lg leading-none"
+            aria-label="إغلاق"
+          >
+            ×
+          </button>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto py-3 px-2">
+          <p className="px-3 pb-2 text-[10px] uppercase tracking-wider text-slate-600">التنقل</p>
+          <ul className="space-y-0.5">
+            {SIDE_LINKS.map((item) => (
+              <li key={item.href + item.label}>
+                <Link
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-300 hover:bg-slate-900 hover:text-white transition"
+                >
+                  <span className="text-base w-6 text-center" aria-hidden>
+                    {item.icon}
+                  </span>
+                  <span>{item.label}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div className="p-4 border-t border-slate-800 space-y-2">
+          <Link
+            href="/register"
+            onClick={() => setSidebarOpen(false)}
+            className="block text-center rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 text-sm"
+          >
+            ابدأ الآن مجاناً
+          </Link>
+          <Link
+            href="/login"
+            onClick={() => setSidebarOpen(false)}
+            className="block text-center rounded-xl border border-slate-700 text-slate-300 hover:border-slate-500 py-2 text-sm"
+          >
+            تسجيل الدخول
+          </Link>
+        </div>
+      </aside>
+
+      {/* شريط علوي */}
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-slate-800/70 bg-slate-950/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              className="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-700 bg-slate-900/80 text-slate-200 hover:border-blue-500 hover:text-white transition shrink-0"
+              aria-label="فتح القائمة"
+            >
+              <span className="flex flex-col gap-1.5 w-4">
+                <span className="block h-0.5 w-full bg-current rounded" />
+                <span className="block h-0.5 w-full bg-current rounded" />
+                <span className="block h-0.5 w-full bg-current rounded" />
+              </span>
+            </button>
             <SiteLogo />
             <span className="hidden sm:inline text-sm text-slate-400 truncate">
               منصة محمد الحزمي
@@ -158,7 +259,7 @@ export default function HomePage() {
           <div className="flex items-center gap-2 text-sm shrink-0">
             <Link
               href="/login"
-              className="px-3 py-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 transition"
+              className="hidden xs:inline px-3 py-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 transition sm:inline"
             >
               دخول
             </Link>
