@@ -60,6 +60,7 @@ export type LandingContent = {
 
 export type PlatformFullSettings = {
   freeSignupRemo: number
+  landing: LandingContent
   landing: { ...DEFAULT_LANDING },
   siteName: string
   siteTagline: string

@@ -15,7 +15,7 @@ const SIDE_LINKS = [
   { href: '/', label: 'الرئيسية', icon: '🏠' },
   { href: '/register', label: 'إنشاء حساب', icon: '✨' },
   { href: '/login', label: 'تسجيل الدخول', icon: '🔑' },
-  { href: '/dashboard', label: '{L('ctaSecondary', 'لوحة المستخدم')}', icon: '📊' },
+  { href: '/dashboard', label: 'لوحة المستخدم', icon: '📊' },
   { href: '/dashboard/images', label: 'الصور', icon: '🖼️' },
   { href: '/dashboard/video', label: 'الفيديو', icon: '🎬' },
   { href: '/dashboard/music', label: 'الموسيقى', icon: '🎵' },
