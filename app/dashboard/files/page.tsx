@@ -34,7 +34,7 @@ export default function FilesPage() {
     setLoading(true);
     setMsg('');
     try {
-      const res = await fetch(`/api/storage?email=\( {encodeURIComponent(em)}&bucket= \){b}`);
+      const res = await fetch(`/api/storage?email=${encodeURIComponent(em)}&bucket=${encodeURIComponent(b)}`);
       const data = await res.json();
       if (data.message && !data.configured) setMsg(data.message);
       if (data.error) setMsg(data.error);

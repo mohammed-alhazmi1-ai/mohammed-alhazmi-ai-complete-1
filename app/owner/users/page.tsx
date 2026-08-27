@@ -13,7 +13,7 @@ export default function OwnerUsersPage() {
 
   const load = async (owner: string, query = '') => {
     const res = await fetch(
-      `/api/owner/users?email=\( {encodeURIComponent(owner)}&q= \){encodeURIComponent(query)}`
+      `/api/owner/users?email=${encodeURIComponent(owner)}&q=${encodeURIComponent(query)}`
     );
     const data = await res.json();
     if (!res.ok) setMsg(data.error || 'خطأ');

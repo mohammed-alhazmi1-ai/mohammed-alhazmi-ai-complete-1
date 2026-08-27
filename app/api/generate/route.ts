@@ -232,7 +232,7 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    providers: ['gemini', 'huggingface', 'replicate'],
+    providers: ['openai', 'gemini', 'huggingface', 'replicate'],
     types: Object.keys(COST),
     costs: COST,
   })

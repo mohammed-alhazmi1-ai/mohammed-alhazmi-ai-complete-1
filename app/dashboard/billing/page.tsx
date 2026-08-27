@@ -212,10 +212,10 @@ export default function BillingPage() {
             </p>
           </div>
           <a
-            href={`https://wa.me/\( {JEEB_WHATSAPP}?text= \){encodeURIComponent(
-              'السلام عليكم، تم إيداع مبلغ لشحن REMO في منصة محمد الحازمي AI.%0Aرقم الإيداع: ' +
+href={`https://wa.me/${JEEB_WHATSAPP}?text=${encodeURIComponent(
+              'السلام عليكم، تم إيداع مبلغ لشحن REMO في منصة محمد الحزمي AI.\nرقم الإيداع: ' +
                 JEEB_DEPOSIT_NUMBER +
-                '%0Aأرفق إشعار الإيداع.'
+                '\nأرفق إشعار الإيداع.'
             )}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -259,14 +259,14 @@ export default function BillingPage() {
               className="mt-2 inline-flex items-center justify-center w-full rounded-xl bg-green-600 text-white py-2 text-sm"
               target="_blank"
               rel="noopener noreferrer"
-              href={`https://wa.me/\( {JEEB_WHATSAPP}?text= \){encodeURIComponent(
-                'تم إنشاء طلب شحن REMO%0Aرقم الطلب: ' +
+              href={`https://wa.me/${JEEB_WHATSAPP}?text=${encodeURIComponent(
+                'تم إنشاء طلب شحن REMO\nرقم الطلب: ' +
                   (last?.paymentId || '') +
-                  '%0Aالمبلغ: ' +
+                  '\nالمبلغ: ' +
                   (last?.amount || '') +
                   ' ' +
                   (last?.currency || '') +
-                  '%0Aأرفق إشعار الإيداع لرقم ' +
+                  '\nأرفق إشعار الإيداع لرقم ' +
                   JEEB_DEPOSIT_NUMBER
               )}`}
             >

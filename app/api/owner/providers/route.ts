@@ -174,7 +174,7 @@ async function testProvider(slug: string, key: string): Promise<ProviderTestResu
     
     if (slug === 'pollinations') {
       const q = encodeURIComponent('test logo')
-      const url = `https://gen.pollinations.ai/image/\( {q}?model=flux&width=512&height=512&key= \){encodeURIComponent(key)}`
+      const url = `https://gen.pollinations.ai/image/${q}?model=flux&width=512&height=512&key=${encodeURIComponent(key)}`
       const res = await fetch(url, { headers: { Authorization: `Bearer ${key}` } })
       if (res.ok) return { success: true, message: 'Pollinations متصل' }
       return { success: false, message: `Pollinations HTTP ${res.status}` }
@@ -356,7 +356,7 @@ export async function POST(req: NextRequest) {
           if (keyRow) {
             await prisma.providerKey.update({
               where: { id: keyRow.id },
-              data: { keyValue: val, isEnabled: true },
+              data: { keyValue: val, isActive: true },
             })
           } else {
             await prisma.providerKey.create({
@@ -364,7 +364,7 @@ export async function POST(req: NextRequest) {
                 providerId,
                 keyName: s.envKey,
                 keyValue: val,
-                isEnabled: true,
+                isActive: true,
               },
             })
           }
@@ -504,11 +504,11 @@ export async function POST(req: NextRequest) {
       if (existing) {
         await prisma.providerKey.update({
           where: { id: existing.id },
-          data: { keyValue, isEnabled: true },
+          data: { keyValue, isActive: true },
         })
       } else {
         await prisma.providerKey.create({
-          data: { providerId, keyName, keyValue, isEnabled: true },
+          data: { providerId, keyName, keyValue, isActive: true },
         })
       }
       await prisma.aiProvider.update({

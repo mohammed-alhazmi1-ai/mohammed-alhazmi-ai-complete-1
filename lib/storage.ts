@@ -46,9 +46,9 @@ export function isStorageConfigured(): boolean {
 /** اسم ملف آمن وفريد */
 export function buildStoragePath(userId: string, filename: string, folder?: string) {
   const safe = filename.replace(/[^a-zA-Z0-9._\-\u0600-\u06FF]/g, '_').slice(0, 80);
-  const id = `\( {Date.now()}_ \){Math.random().toString(36).slice(2, 8)}`;
-  const base = folder ? `\( {userId}/ \){folder}` : userId;
-  return `\( {base}/ \){id}_${safe}`;
+  const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const base = folder ? `${userId}/${folder}` : userId;
+  return `${base}/${id}_${safe}`;
 }
 
 /**
@@ -105,7 +105,7 @@ export async function listUserFiles(bucket: StorageBucket, userId: string, limit
   });
   if (error) return { files: [], error: error.message };
   const files = (data || []).map((f) => {
-    const path = `\( {userId}/ \){f.name}`;
+    const path = `${userId}/${f.name}`;
     const { data: pub } = client.storage.from(bucket).getPublicUrl(path);
     return {
       name: f.name,

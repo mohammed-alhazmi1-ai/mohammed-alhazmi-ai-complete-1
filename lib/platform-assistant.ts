@@ -227,7 +227,7 @@ ${baseAnswer}`
           contents: [
             {
               role: 'user',
-              parts: [{ text: `سؤال المستخدم: \( {userMsg}\n\n \){system}` }],
+              parts: [{ text: `سؤال المستخدم: ${userMsg}\n\n${system}` }],
             },
           ],
           generationConfig: { maxOutputTokens: 400, temperature: 0.4 },
