@@ -18,5 +18,6 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify({ url }),
   })
   const data = await res.json().catch(() => ({}))
-  return NextResponse.json({ ok: res.ok && data?.ok !== false, webhook: data?.webhook, error: data?.error }, { status: res.ok ? 200 : 502 })
+  const alreadyExists = data?.error?.code === 'already_exists'
+  return NextResponse.json({ ok: (res.ok && data?.ok !== false) || alreadyExists, webhook: data?.webhook, error: alreadyExists ? undefined : data?.error }, { status: res.ok || alreadyExists ? 200 : 502 })
 }
