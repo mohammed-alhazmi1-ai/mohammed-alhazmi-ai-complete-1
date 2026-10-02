@@ -365,14 +365,30 @@ export async function POST(req: NextRequest) {
             },
           })
           providerId = created.id
-          await prisma.aiModel.create({
-            data: {
+          await prisma.aiModel.upsert({
+            where: { providerId_modelId: { providerId: created.id, modelId: s.defaultModel } },
+            create: {
               providerId: created.id,
               modelId: s.defaultModel,
               displayName: s.defaultModel,
+              category: s.category.split(',')[0],
               isDefault: true,
-            } as any,
+            },
+            update: { displayName: s.defaultModel, category: s.category.split(',')[0], isDefault: true },
           })
+        }
+        if (providerId) {
+          await prisma.aiModel.upsert({
+            where: { providerId_modelId: { providerId, modelId: s.defaultModel } },
+            create: {
+              providerId,
+              modelId: s.defaultModel,
+              displayName: s.defaultModel,
+              category: s.category.split(',')[0],
+              isDefault: true,
+            },
+            update: { displayName: s.defaultModel, category: s.category.split(',')[0], isDefault: true },
+          }).catch(() => undefined)
         }
         const val = envVal(s.envKey)
         if (val && providerId) {
