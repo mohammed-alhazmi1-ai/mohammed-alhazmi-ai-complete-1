@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs'
 import path from 'path'
+import { prisma } from '@/lib/prisma'
 
 export type KnowledgeItem = {
   id: string
@@ -27,6 +28,7 @@ export type AssistantConfig = {
 }
 
 const FILE = path.join(process.cwd(), 'data', 'platform-assistant.json')
+const SETTING_KEY = 'platform_assistant'
 
 /** مرادفات عربية لتحسين دقة البحث */
 const SYNONYMS: Record<string, string[]> = {
@@ -139,8 +141,8 @@ function expandTokens(msg: string): Set<string> {
 
 export async function getAssistantConfig(): Promise<AssistantConfig> {
   try {
-    const raw = await fs.readFile(FILE, 'utf8')
-    const data = JSON.parse(raw)
+    const row = await prisma.setting.findUnique({ where: { key: SETTING_KEY } })
+    const data = row?.value ? JSON.parse(row.value) : {}
     return {
       ...DEFAULT_CONFIG,
       ...data,
@@ -150,7 +152,17 @@ export async function getAssistantConfig(): Promise<AssistantConfig> {
           : DEFAULT_ITEMS,
     }
   } catch {
-    return { ...DEFAULT_CONFIG, items: [...DEFAULT_ITEMS] }
+    try {
+      const raw = await fs.readFile(FILE, 'utf8')
+      const data = JSON.parse(raw)
+      return {
+        ...DEFAULT_CONFIG,
+        ...data,
+        items: Array.isArray(data.items) && data.items.length ? data.items : DEFAULT_ITEMS,
+      }
+    } catch {
+      return { ...DEFAULT_CONFIG, items: [...DEFAULT_ITEMS] }
+    }
   }
 }
 
@@ -164,8 +176,11 @@ export async function saveAssistantConfig(
     items: patch.items ?? cur.items,
     updatedAt: new Date().toISOString(),
   }
-  await fs.mkdir(path.dirname(FILE), { recursive: true })
-  await fs.writeFile(FILE, JSON.stringify(next, null, 2), 'utf8')
+  await prisma.setting.upsert({
+    where: { key: SETTING_KEY },
+    create: { key: SETTING_KEY, value: JSON.stringify(next) },
+    update: { value: JSON.stringify(next) },
+  })
   return next
 }
 
