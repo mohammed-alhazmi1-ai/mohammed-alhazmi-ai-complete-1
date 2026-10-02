@@ -43,3 +43,11 @@
 في فرع `qa/fix-runtime-interpolation-and-providers` تم إصلاح خطأ يجعل اختيار `openai` أو `gpt` يتحول خطأً إلى `auto`، وإضافة OpenAI إلى Seed مزودي لوحة المالك، وإضافة Pollinations إلى قائمة `/api/generate`، وتصحيح رسالة خطأ Gemini المشوهة. تمت ترقية Next.js من `14.1.0` إلى `14.2.35`، ونجح `npm run build` بعد ذلك دون أخطاء TypeScript أو Prisma.
 
 المتبقي قبل اعتماد النسخة المنشورة: نشر هذا الفرع أو دمجه في الفرع الذي تستخدمه Vercel، ثم تنفيذ `seed` لمزودي لوحة المالك إن كانت قاعدة البيانات تحتاج السجل الجديد لـ OpenAI، ومراجعة مفاتيح Gemini/OpenAI وقيود Replicate/Hugging Face من لوحاتهم. لم تُطبع أي قيمة سرية ولم تُعدّل أسرار Vercel.
+
+## عطل تسجيل الدخول — 2 أكتوبر 2026
+
+أظهر اختبار لقطة تسجيل الدخول أن `Failed to fetch` صادر من طلب Supabase Auth وليس من حماية صفحة المالك. حزمة JavaScript المنشورة تحتوي رابط Supabase `baepzipohfelxqivrqkd.supabase.co`، لكن فحص DNS العام أعاد `NXDOMAIN`، لذلك يفشل دخول المالك والمستخدمين واستعادة كلمة المرور من المتصفح. فحص `/api/health` وحده لا يثبت اتصال Supabase؛ فهو يتحقق فقط من وجود متغيرات البيئة.
+
+تمت إضافة `formatSupabaseAuthError`، والتحقق من إعدادات Supabase قبل الدخول والتسجيل والاستعادة، ومعالجة الاستثناءات حتى يظهر سبب عربي واضح ويعود زر الدخول من حالة التحميل. نجح `npm run build` واختبار HTTP لمسارات `/login` و`/signup` و`/forgot-password` و`/api/health`.
+
+الإجراء التشغيلي المطلوب بعد نشر الفرع: تصحيح `NEXT_PUBLIC_SUPABASE_URL` في إعدادات Vercel إلى عنوان مشروع Supabase فعّال (والتحقق من `NEXT_PUBLIC_SUPABASE_ANON_KEY`) ثم إعادة النشر. تغيير الكود وحده لا يستطيع إصلاح نطاق Supabase غير الموجود في DNS.

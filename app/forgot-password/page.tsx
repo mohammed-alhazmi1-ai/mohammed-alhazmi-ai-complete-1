@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { getSupabase, isSupabaseConfigured, supabaseConfigError } from '@/lib/supabase';
+import { formatSupabaseAuthError, getSupabase, isSupabaseConfigured, supabaseConfigError } from '@/lib/supabase';
 
 const supabase = getSupabase();
 
@@ -17,23 +17,34 @@ export default function ForgotPasswordPage() {
     setMessage('');
     setError('');
 
-    const redirectTo =
-      typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined;
-
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo,
-    });
-
-    if (resetError) {
-      setError(resetError.message);
+    if (!isSupabaseConfigured) {
+      setError(supabaseConfigError || 'إعدادات المصادقة غير مكتملة في بيئة النشر.');
       setLoading(false);
       return;
     }
 
-    setMessage(
-      'إذا كان البريد مسجّلاً لدينا، ستصلك رسالة تحتوي رابط إعادة تعيين كلمة المرور. تحقق من صندوق الوارد والرسائل غير المرغوب فيها.'
-    );
-    setLoading(false);
+    const redirectTo =
+      typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined;
+
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo,
+      });
+
+      if (resetError) {
+        setError(formatSupabaseAuthError(resetError));
+        setLoading(false);
+        return;
+      }
+
+      setMessage(
+        'إذا كان البريد مسجّلاً لدينا، ستصلك رسالة تحتوي رابط إعادة تعيين كلمة المرور. تحقق من صندوق الوارد والرسائل غير المرغوب فيها.'
+      );
+    } catch (err) {
+      setError(formatSupabaseAuthError(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

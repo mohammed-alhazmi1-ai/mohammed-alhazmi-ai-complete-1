@@ -32,6 +32,15 @@ export const supabaseConfigError = isSupabaseConfigured
   ? null
   : 'إعدادات Supabase غير مكتملة. أضف NEXT_PUBLIC_SUPABASE_URL و NEXT_PUBLIC_SUPABASE_ANON_KEY في .env ثم أعد تشغيل npm run dev';
 
+/** تحويل أخطاء الشبكة العامة إلى رسالة مفهومة دون كشف تفاصيل داخلية. */
+export function formatSupabaseAuthError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error || '')
+  if (/failed to fetch|networkerror|load failed|fetch failed|could not fetch/i.test(message)) {
+    return 'تعذر الوصول إلى خدمة تسجيل الدخول. تحقق من اتصال الإنترنت وصحة رابط Supabase في إعدادات Vercel.'
+  }
+  return message || 'تعذر إكمال عملية المصادقة. حاول مرة أخرى.'
+}
+
 /** عميل السيرفر بمفتاح service role */
 export function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || ''

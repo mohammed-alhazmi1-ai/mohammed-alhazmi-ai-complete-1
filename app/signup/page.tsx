@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { getSupabase, isSupabaseConfigured, supabaseConfigError } from '@/lib/supabase';
+import { formatSupabaseAuthError, getSupabase, isSupabaseConfigured, supabaseConfigError } from '@/lib/supabase';
 
 const supabase = getSupabase();
 
@@ -58,6 +58,11 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
+      if (!isSupabaseConfigured) {
+        setError(supabaseConfigError || 'إعدادات المصادقة غير مكتملة في بيئة النشر.');
+        return;
+      }
+
       // 1) إنشاء الحساب في Supabase Auth
       const { data, error: authError } = await supabase.auth.signUp({
         email: email.trim(),
@@ -146,7 +151,7 @@ export default function SignupPage() {
         );
       }
     } catch (err: any) {
-      setError(err?.message || 'حدث خطأ غير متوقع');
+      setError(formatSupabaseAuthError(err));
     } finally {
       setLoading(false);
     }

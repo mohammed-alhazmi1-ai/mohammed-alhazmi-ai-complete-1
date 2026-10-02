@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { getSupabase, isSupabaseConfigured, supabaseConfigError } from '@/lib/supabase';
+import { formatSupabaseAuthError, getSupabase, isSupabaseConfigured, supabaseConfigError } from '@/lib/supabase';
 import { triggerAuthSplash } from '@/components/site/SplashScreen'
 
 const supabase = getSupabase();
@@ -18,37 +18,48 @@ export default function LoginPage() {
     setLoading(true);
     setErrorMsg('');
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-
-    if (error) {
-      if (error.message === 'Invalid login credentials') {
-        setErrorMsg('البريد الإلكتروني أو كلمة المرور غير صحيحة، أو أن الحساب غير مسجل.');
-      } else if (error.message === 'Email not confirmed') {
-        setErrorMsg('يرجى تأكيد بريدك الإلكتروني أولاً. افتح رسالة التفعيل المرسلة إليك ثم حاول مرة أخرى.');
-      } else {
-        setErrorMsg('حدث خطأ: ' + error.message);
-      }
+    if (!isSupabaseConfigured) {
+      setErrorMsg(supabaseConfigError || 'إعدادات المصادقة غير مكتملة في بيئة النشر.');
       setLoading(false);
       return;
     }
 
-    // توجيه حسب الدور: مالك → لوحة المالك | مستخدم → لوحة المستخدم
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
-    const role = user?.user_metadata?.role || user?.app_metadata?.role || '';
-    const ownerEmails = (process.env.NEXT_PUBLIC_OWNER_EMAILS || '')
-      .split(',')
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean);
-    const emailLower = (user?.email || '').toLowerCase();
-    const isOwner =
-      role === 'OWNER' ||
-      role === 'ADMIN' ||
-      (emailLower && ownerEmails.includes(emailLower));
-    window.location.href = isOwner ? '/owner' : '/dashboard';
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (error) {
+        if (error.message === 'Invalid login credentials') {
+          setErrorMsg('البريد الإلكتروني أو كلمة المرور غير صحيحة، أو أن الحساب غير مسجل.');
+        } else if (error.message === 'Email not confirmed') {
+          setErrorMsg('يرجى تأكيد بريدك الإلكتروني أولاً. افتح رسالة التفعيل المرسلة إليك ثم حاول مرة أخرى.');
+        } else {
+          setErrorMsg('حدث خطأ: ' + formatSupabaseAuthError(error));
+        }
+        setLoading(false);
+        return;
+      }
+
+      // توجيه حسب الدور: مالك → لوحة المالك | مستخدم → لوحة المستخدم
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
+      const role = user?.user_metadata?.role || user?.app_metadata?.role || '';
+      const ownerEmails = (process.env.NEXT_PUBLIC_OWNER_EMAILS || '')
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean);
+      const emailLower = (user?.email || '').toLowerCase();
+      const isOwner =
+        role === 'OWNER' ||
+        role === 'ADMIN' ||
+        (emailLower && ownerEmails.includes(emailLower));
+      window.location.href = isOwner ? '/owner' : '/dashboard';
+    } catch (err) {
+      setErrorMsg('حدث خطأ: ' + formatSupabaseAuthError(err));
+      setLoading(false);
+    }
   };
 
   const handleOAuth = async (provider: 'google' | 'github') => {
