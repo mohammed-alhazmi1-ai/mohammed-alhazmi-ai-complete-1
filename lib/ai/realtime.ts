@@ -21,6 +21,9 @@ export type GenResult = {
   model: string
   text?: string
   imageUrl?: string
+  pending?: boolean
+  taskId?: string
+  taskUrl?: string
   error?: string
   raw?: unknown
 }
@@ -43,24 +46,27 @@ function openaiKey() {
   return env('OPENAI_API_KEY')
 }
 
-function normProvider(p?: string): 'openai' | 'gemini' | 'huggingface' | 'replicate' | 'pollinations' | 'auto' {
+function normProvider(p?: string): 'openai' | 'gemini' | 'huggingface' | 'replicate' | 'pollinations' | 'manus' | 'auto' {
   const x = (p || 'auto').toLowerCase()
   if (x.includes('openai') || x.includes('gpt')) return 'openai'
   if (x.includes('gemini') || x.includes('google')) return 'gemini'
   if (x.includes('hugging') || x === 'hf') return 'huggingface'
   if (x.includes('replicate')) return 'replicate'
+  if (x.includes('manus')) return 'manus'
   return 'auto'
 }
 
 /** ترتيب المحاولة: المفضّل أولاً ثم الباقي */
 function orderProviders(
-  preferred: 'openai' | 'gemini' | 'huggingface' | 'replicate' | 'pollinations' | 'auto',
+  preferred: 'openai' | 'gemini' | 'huggingface' | 'replicate' | 'pollinations' | 'manus' | 'auto',
   forType: GenType
-): Array<'openai' | 'gemini' | 'huggingface' | 'replicate' | 'pollinations'> {
-  const all: Array<'openai' | 'gemini' | 'huggingface' | 'replicate' | 'pollinations'> =
-    forType === 'images' || forType === 'video' || forType === 'music'
+): Array<'openai' | 'gemini' | 'huggingface' | 'replicate' | 'pollinations' | 'manus'> {
+  const all: Array<'openai' | 'gemini' | 'huggingface' | 'replicate' | 'pollinations' | 'manus'> =
+    forType === 'images'
       ? ['pollinations', 'replicate', 'huggingface', 'gemini']
-      : ['openai', 'pollinations', 'gemini', 'huggingface', 'replicate']
+      : forType === 'video' || forType === 'music'
+        ? ['manus', 'replicate', 'pollinations', 'gemini']
+        : ['openai', 'pollinations', 'gemini', 'huggingface', 'replicate']
 
   if (preferred === 'auto') return all
   return [preferred, ...all.filter((p) => p !== preferred)]
@@ -534,7 +540,7 @@ async function pollinationsImage(prompt: string): Promise<GenResult> {
 
 
 async function runOne(
-  provider: 'openai' | 'gemini' | 'huggingface' | 'replicate' | 'pollinations',
+  provider: 'openai' | 'gemini' | 'huggingface' | 'replicate' | 'pollinations' | 'manus',
   type: GenType,
   prompt: string
 ): Promise<GenResult> {
@@ -566,6 +572,10 @@ async function runOne(
     }
   }
   if (type === 'video') {
+    if (provider === 'manus') {
+      const { createManusMediaTask } = await import('@/lib/ai/manus')
+      return createManusMediaTask('video', prompt, process.env.MANUS_WEBHOOK_URL)
+    }
     if (provider === 'replicate') return replicateVideo(prompt)
     // الآخرون: سيناريو نصي
     const g = await (provider === 'huggingface' ? hfChat : geminiChat)(
@@ -576,6 +586,10 @@ async function runOne(
       : g
   }
   if (type === 'music') {
+    if (provider === 'manus') {
+      const { createManusMediaTask } = await import('@/lib/ai/manus')
+      return createManusMediaTask('music', prompt, process.env.MANUS_WEBHOOK_URL)
+    }
     if (provider === 'replicate') return replicateMusic(prompt)
     const g = await (provider === 'huggingface' ? hfChat : geminiChat)(
       `اكتب وصفاً موسيقياً + English prompt لمولد موسيقى/شيلة/زفة:\n${prompt}`

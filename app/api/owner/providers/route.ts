@@ -41,6 +41,16 @@ const SEED: SeedProvider[] = [
   },
 
   {
+    slug: 'manus',
+    name: 'Manus Agent Media',
+    category: 'video,audio',
+    priority: 1,
+    defaultModel: 'manus-media-agent',
+    costPerUse: 100,
+    envKey: 'MANUS_API_KEY',
+  },
+
+  {
     slug: 'gemini',
     name: 'Google Gemini',
     category: 'text',
@@ -187,6 +197,13 @@ async function testProvider(slug: string, key: string): Promise<ProviderTestResu
       const res = await fetch(url, { headers: { Authorization: `Bearer ${key}` } })
       if (res.ok) return { success: true, message: 'Pollinations متصل' }
       return { success: false, message: `Pollinations HTTP ${res.status}` }
+    }
+
+    if (slug === 'manus') {
+      const res = await fetch('https://api.manus.ai/v2/user.me', {
+        headers: { 'x-manus-api-key': key },
+      })
+      return { success: res.ok, message: res.ok ? 'Manus متصل' : `Manus فشل HTTP ${res.status}` }
     }
 
     if (slug === 'gemini') {

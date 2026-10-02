@@ -11,8 +11,8 @@ const COST: Record<string, number> = {
   chat: 5,
   code: 10,
   images: 20,
-  video: 40,
-  music: 25,
+  video: 100,
+  music: 100,
 }
 
 function mapType(raw: string): GenType {
@@ -30,6 +30,8 @@ function pickProvider(body: any): string {
   if (p.includes('gemini') || p.includes('google')) return 'gemini'
   if (p.includes('hugging') || p === 'hf') return 'huggingface'
   if (p.includes('replicate')) return 'replicate'
+  if (p.includes('pollination')) return 'pollinations'
+  if (p.includes('manus')) return 'manus'
   return 'auto'
 }
 
@@ -134,7 +136,7 @@ export async function POST(req: NextRequest) {
     let creditsLeft: number | undefined
 
     // خصم الرصيد فقط عند نجاح التوليد
-    if (userId && result.ok) {
+    if (userId && result.ok && !result.pending) {
       try {
         creditsLeft = await deductCredits(
           userId,
@@ -152,11 +154,11 @@ export async function POST(req: NextRequest) {
         await prisma.aiJob.update({
           where: { id: jobId },
           data: {
-            status: result.ok ? 'completed' : 'failed',
+            status: result.pending ? 'processing' : result.ok ? 'completed' : 'failed',
             provider: result.provider,
-            result: (result.text || result.error || '').slice(0, 5000),
+            result: (result.text || result.error || result.taskId || '').slice(0, 5000),
             resultUrl: result.imageUrl || null,
-            creditsUsed: result.ok ? cost : 0,
+            creditsUsed: result.ok && !result.pending ? cost : 0,
           } as any,
         })
       } catch {
@@ -176,6 +178,9 @@ export async function POST(req: NextRequest) {
         cost,
         creditsLeft,
         userBound: Boolean(userId),
+        pending: Boolean(result.pending),
+        taskId: result.taskId,
+        taskUrl: result.taskUrl,
       })
     }
 
@@ -185,10 +190,13 @@ export async function POST(req: NextRequest) {
       text: result.text,
       result: result.text,
       imageUrl: result.imageUrl,
+      pending: Boolean(result.pending),
+      taskId: result.taskId,
+      taskUrl: result.taskUrl,
       provider: result.provider,
       model: result.model,
       type,
-      cost: userId ? cost : 0,
+      cost: userId && !result.pending ? cost : 0,
       creditsLeft,
       userBound: Boolean(userId),
       jobId,
