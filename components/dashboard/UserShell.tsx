@@ -4,7 +4,7 @@ import SocialButtons from '@/components/site/SocialButtons'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { getSupabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/auth/client'
 
 const supabase = getSupabase()
 

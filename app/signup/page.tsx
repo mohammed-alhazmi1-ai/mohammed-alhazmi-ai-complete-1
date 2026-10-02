@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { formatSupabaseAuthError, getSupabase, isSupabaseConfigured, supabaseConfigError } from '@/lib/supabase';
+import { formatSupabaseAuthError, getSupabase, isSupabaseConfigured, supabaseConfigError } from '@/lib/auth/client';
 
 const supabase = getSupabase();
 
@@ -58,98 +58,11 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      if (!isSupabaseConfigured) {
-        setError(supabaseConfigError || 'إعدادات المصادقة غير مكتملة في بيئة النشر.');
-        return;
-      }
-
-      // 1) إنشاء الحساب في Supabase Auth
-      const { data, error: authError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          data: {
-            first_name: firstName.trim(),
-            last_name: lastName.trim(),
-            username: username.trim(),
-            phone: phone.trim(),
-            country,
-            city: city.trim(),
-          },
-          emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined,
-        },
-      });
-
-      if (authError) {
-        // ترجمة رسائل شائعة
-        if (authError.message.includes('already registered') || authError.message.includes('already been registered')) {
-          setError('هذا البريد الإلكتروني مسجّل مسبقاً. جرّب تسجيل الدخول.');
-        } else if (authError.message.includes('Password')) {
-          setError('كلمة المرور ضعيفة. استخدم 6 أحرف على الأقل.');
-        } else {
-          setError(authError.message);
-        }
-        setLoading(false);
-        return;
-      }
-
-      if (!data.user) {
-        setError('فشل إنشاء الحساب. حاول مرة أخرى.');
-        setLoading(false);
-        return;
-      }
-
-      let avatarUrl: string | null = null;
-
-      // 2) رفع الصورة الشخصية إن وُجدت
-      if (avatarFile && data.user.id) {
-        try {
-          const ext = avatarFile.name.split('.').pop() || 'jpg';
-          const path = `avatars/${data.user.id}.${ext}`;
-          const { error: uploadError } = await supabase.storage
-            .from('avatars')
-            .upload(path, avatarFile, { upsert: true, contentType: avatarFile.type });
-
-          if (!uploadError) {
-            const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
-            avatarUrl = urlData?.publicUrl || null;
-          }
-        } catch {
-          // لا نوقف التسجيل إذا فشل رفع الصورة
-          console.warn('Avatar upload skipped');
-        }
-      }
-
-      // 3) حفظ الملف الشخصي في جدول profiles (Supabase)
-      try {
-        await supabase.from('profiles').upsert({
-          id: data.user.id,
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          username: username.trim(),
-          phone: phone.trim(),
-          country,
-          city: city.trim(),
-          avatar_url: avatarUrl,
-          updated_at: new Date().toISOString(),
-        });
-      } catch {
-        console.warn('profiles table may not exist yet');
-      }
-
-      // 4) رسالة النجاح حسب حالة تأكيد البريد
-      if (data.session) {
-        // الجلسة فورية (تأكيد البريد معطل في Supabase)
-        setSuccess('تم إنشاء الحساب بنجاح! جاري نقلك للوحة التحكم...');
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 1200);
-      } else {
-        // يحتاج تأكيد البريد
-        setSuccess(
-          'تم إنشاء الحساب بنجاح ✅\nتم إرسال رابط تفعيل إلى بريدك الإلكتروني. يرجى فتح الرسالة والضغط على رابط التفعيل ثم تسجيل الدخول.'
-        );
-      }
+      const response = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ firstName, lastName, username: username.trim(), email: email.trim().toLowerCase(), phoneNumber: phone.trim(), country, city: city.trim(), password, confirmPassword }) });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) { setError(result.error || 'فشل إنشاء الحساب.'); return; }
+      setSuccess('تم إنشاء الحساب بنجاح! جاري نقلك لتسجيل الدخول...');
+      setTimeout(() => { window.location.href = '/login'; }, 900);
     } catch (err: any) {
       setError(formatSupabaseAuthError(err));
     } finally {

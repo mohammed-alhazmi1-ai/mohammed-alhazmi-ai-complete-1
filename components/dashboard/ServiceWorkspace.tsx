@@ -1,6 +1,6 @@
 'use client'
 
-import { getSupabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/auth/client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'

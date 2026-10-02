@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { formatSupabaseAuthError, getSupabase, isSupabaseConfigured, supabaseConfigError } from '@/lib/supabase';
+import { formatSupabaseAuthError, getSupabase, isSupabaseConfigured, supabaseConfigError } from '@/lib/auth/client';
 import { triggerAuthSplash } from '@/components/site/SplashScreen'
 
 const supabase = getSupabase();
