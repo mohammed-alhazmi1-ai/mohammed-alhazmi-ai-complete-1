@@ -26,7 +26,7 @@ function mapType(raw: string): GenType {
 
 function pickProvider(body: any): string {
   const p = String(body.provider || body.selectedProvider || body.model || 'auto').toLowerCase()
-  if (p.includes('openai') || p.includes('gpt')) return 'auto'
+  if (p.includes('openai') || p.includes('gpt')) return 'openai'
   if (p.includes('gemini') || p.includes('google')) return 'gemini'
   if (p.includes('hugging') || p === 'hf') return 'huggingface'
   if (p.includes('replicate')) return 'replicate'
@@ -232,7 +232,7 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    providers: ['openai', 'gemini', 'huggingface', 'replicate'],
+    providers: ['openai', 'gemini', 'huggingface', 'replicate', 'pollinations'],
     types: Object.keys(COST),
     costs: COST,
   })

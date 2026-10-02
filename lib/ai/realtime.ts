@@ -161,7 +161,7 @@ async function geminiChat(prompt: string, model = 'gemini-2.0-flash'): Promise<G
     ok: false,
     provider: 'gemini',
     model,
-    error: 'تعذر Gemini (تحقق من المفتاح AQ. والنموذج)',
+    error: 'تعذر Gemini (تحقق من المفتاح والنموذج)',
   }
 }
 

@@ -50,6 +50,15 @@ const SEED: SeedProvider[] = [
     envKey: 'GEMINI_API_KEY',
   },
   {
+    slug: 'openai',
+    name: 'OpenAI',
+    category: 'text',
+    priority: 5,
+    defaultModel: 'gpt-4o-mini',
+    costPerUse: 5,
+    envKey: 'OPENAI_API_KEY',
+  },
+  {
     slug: 'replicate',
     name: 'Replicate',
     category: 'image',
