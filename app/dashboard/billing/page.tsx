@@ -28,11 +28,40 @@ export default function BillingPage() {
   const methods = useMemo(() => PAY_METHODS, [])
   const method: PayMethod | undefined = methods.find((m) => m.id === methodId)
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const orderId = params.get('token')
+    if (params.get('paypal') !== 'success' || !orderId) return
+    setLoading(true)
+    fetch('/api/payment/paypal/capture', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId }),
+    }).then(async (res) => {
+      const data = await res.json()
+      setLast(data)
+      setMsg(data.ok ? `تم تأكيد الدفع وشحن ${data.creditsAdded || 0} REMO` : data.error || 'تعذر تأكيد الدفع')
+    }).catch((error) => setMsg(error?.message || 'تعذر الاتصال بـ PayPal')).finally(() => setLoading(false))
+  }, [])
+
   async function submit() {
     setLoading(true)
     setMsg(null)
     setLast(null)
     try {
+      if (methodId === 'paypal') {
+        const paypalBody = tab === 'packs' && selectedPack
+          ? { packId: selectedPack.id }
+          : { planId: selectedPlan?.id }
+        const paypalRes = await fetch('/api/payment/paypal/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(paypalBody),
+        })
+        const paypalData = await paypalRes.json()
+        setLast(paypalData)
+        if (!paypalRes.ok || !paypalData.ok) throw new Error(paypalData.error || 'تعذر إنشاء طلب PayPal')
+        window.location.href = paypalData.approvalUrl
+        return
+      }
       const body: any = { methodId, txRef }
       if (tab === 'packs' && selectedPack) body.packId = selectedPack.id
       if (tab === 'plans' && selectedPlan) body.planId = selectedPlan.id
@@ -135,7 +164,7 @@ export default function BillingPage() {
                 ) : null}
               </div>
               <div className="text-lg font-semibold mt-1">
-                {p.priceUsd === 0 ? 'مجاناً' : `\[ {p.priceUsd}/شهر`}
+                {p.priceUsd === 0 ? 'مجاناً' : `$${p.priceUsd}/شهر`}
               </div>
               <div className="text-xs text-gray-500">{p.monthlyRemo} REMO شهرياً</div>
               <ul className="mt-2 text-xs text-gray-600 dark:text-gray-300 space-y-1">

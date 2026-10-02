@@ -17,7 +17,7 @@ export default function PlansPage() {
           >
             <div className="font-bold text-lg">{p.name}</div>
             <div className="text-2xl font-semibold my-2">
-              {p.priceUsd === 0 ? 'مجاناً' : ` \]{p.priceUsd}`}
+              {p.priceUsd === 0 ? 'مجاناً' : `$${p.priceUsd}`}
               {p.priceUsd > 0 ? <span className="text-sm font-normal text-gray-500">/شهر</span> : null}
             </div>
             <div className="text-sm text-blue-600 mb-2">{p.monthlyRemo} REMO</div>

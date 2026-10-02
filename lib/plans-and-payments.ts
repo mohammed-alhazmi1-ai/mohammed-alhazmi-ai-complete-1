@@ -77,6 +77,18 @@ export const SUBSCRIPTION_PLANS: Plan[] = [
     badge: 'الأكثر طلباً',
   },
   {
+    id: 'creator',
+    name: 'صانع المحتوى',
+    nameEn: 'Creator',
+    priceUsd: 12,
+    priceYer: 3000,
+    monthlyRemo: 550,
+    chatLimit: 500,
+    imageLimit: 80,
+    videoLimit: 10,
+    features: ['550 REMO', 'فيديو وصوت', 'أولوية للوسائط', 'دعم عبر البريد'],
+  },
+  {
     id: 'business',
     name: 'أعمال',
     nameEn: 'Business',
@@ -113,6 +125,19 @@ export const SUBSCRIPTION_PLANS: Plan[] = [
     features: ['تفعيل بكود هدية', 'من لوحة المالك', 'مدة محدودة'],
     badge: 'بكود',
   },
+  {
+    id: 'enterprise',
+    name: 'مؤسسات',
+    nameEn: 'Enterprise',
+    priceUsd: 149,
+    priceYer: 37250,
+    monthlyRemo: 12000,
+    chatLimit: null,
+    imageLimit: null,
+    videoLimit: null,
+    features: ['12000 REMO', 'كل خدمات المنصة', 'أولوية قصوى', 'دعم مخصص'],
+    badge: 'للفرق',
+  },
 ]
 
 export const REMO_PACKS: RemoPack[] = [
@@ -138,7 +163,7 @@ export const PAY_METHODS: PayMethod[] = [
 4) بعد التحقق يُضاف رصيد REMO إلى حسابك`,
     addressOrAccount: process.env.NEXT_PUBLIC_JEEB_NUMBER || '777096733',
     icon: '📱',
-  },,,
+  },
   {
     id: 'binance',
     name: 'بينانس (USDT)',
@@ -178,8 +203,8 @@ export const PAY_METHODS: PayMethod[] = [
     nameEn: 'PayPal',
     type: 'card',
     currency: 'USD',
-    enabled: false, // يظهر كقريباً حتى يتم الربط
-    instructions: 'PayPal غير مفعّل حالياً. اختر جيب أو بينانس أو التحويل اليدوي.',
+    enabled: true,
+    instructions: 'ادفع بأمان عبر PayPal. بعد إتمام الدفع يتم شحن الرصيد أو تفعيل الاشتراك تلقائياً. إذا ظهرت رسالة عدم التهيئة، أضف بيانات PayPal REST في إعدادات Vercel.',
     icon: '💙',
   },
 ]
