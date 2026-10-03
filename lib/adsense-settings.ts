@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs'
 import path from 'path'
+import { prisma } from '@/lib/prisma'
 
 export type AdSenseSettings = {
   adsenseEnabled: boolean
@@ -9,6 +10,7 @@ export type AdSenseSettings = {
 }
 
 const FILE = path.join(process.cwd(), 'data', 'adsense.json')
+const SETTING_KEY = 'adsense_settings'
 
 const DEFAULTS: AdSenseSettings = {
   adsenseEnabled: false,
@@ -19,10 +21,15 @@ const DEFAULTS: AdSenseSettings = {
 
 export async function getAdSense(): Promise<AdSenseSettings> {
   try {
-    const raw = await fs.readFile(FILE, 'utf8')
-    return { ...DEFAULTS, ...JSON.parse(raw) }
+    const row = await prisma.setting.findUnique({ where: { key: SETTING_KEY } })
+    return { ...DEFAULTS, ...(row?.value ? JSON.parse(row.value) : {}) }
   } catch {
-    return { ...DEFAULTS }
+    try {
+      const raw = await fs.readFile(FILE, 'utf8')
+      return { ...DEFAULTS, ...JSON.parse(raw) }
+    } catch {
+      return { ...DEFAULTS }
+    }
   }
 }
 
@@ -31,7 +38,10 @@ export async function saveAdSense(
 ): Promise<AdSenseSettings> {
   const cur = await getAdSense()
   const next = { ...cur, ...patch }
-  await fs.mkdir(path.dirname(FILE), { recursive: true })
-  await fs.writeFile(FILE, JSON.stringify(next, null, 2), 'utf8')
+  await prisma.setting.upsert({
+    where: { key: SETTING_KEY },
+    create: { key: SETTING_KEY, value: JSON.stringify(next) },
+    update: { value: JSON.stringify(next) },
+  })
   return next
 }

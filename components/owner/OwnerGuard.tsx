@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { getSupabase, isSupabaseConfigured, supabaseConfigError } from '@/lib/supabase';
+import { getSupabase, isSupabaseConfigured, supabaseConfigError } from '@/lib/auth/client';
 
 const supabase = getSupabase();
 

@@ -44,7 +44,7 @@ export async function logSecurityEvent(
   const items = await readAll()
   const ev: SecurityEvent = {
     ...partial,
-    id: `sec_\( {Date.now()}_ \){Math.random().toString(36).slice(2, 8)}`,
+    id: `sec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     at: new Date().toISOString(),
     seen: false,
   }

@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            'التخزين غير مضبوط. أضف NEXT_PUBLIC_SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY (أو ANON) في .env وأنشئ الـ Buckets في Supabase.',
+            'التخزين غير مضبوط. أضف BLOB_READ_WRITE_TOKEN إلى بيئة Vercel واربط Vercel Blob Store بالمشروع.',
         },
         { status: 503 }
       );

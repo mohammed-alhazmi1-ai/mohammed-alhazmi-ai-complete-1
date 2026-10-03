@@ -28,11 +28,40 @@ export default function BillingPage() {
   const methods = useMemo(() => PAY_METHODS, [])
   const method: PayMethod | undefined = methods.find((m) => m.id === methodId)
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const orderId = params.get('token')
+    if (params.get('paypal') !== 'success' || !orderId) return
+    setLoading(true)
+    fetch('/api/payment/paypal/capture', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId }),
+    }).then(async (res) => {
+      const data = await res.json()
+      setLast(data)
+      setMsg(data.ok ? `تم تأكيد الدفع وشحن ${data.creditsAdded || 0} REMO` : data.error || 'تعذر تأكيد الدفع')
+    }).catch((error) => setMsg(error?.message || 'تعذر الاتصال بـ PayPal')).finally(() => setLoading(false))
+  }, [])
+
   async function submit() {
     setLoading(true)
     setMsg(null)
     setLast(null)
     try {
+      if (methodId === 'paypal') {
+        const paypalBody = tab === 'packs' && selectedPack
+          ? { packId: selectedPack.id }
+          : { planId: selectedPlan?.id }
+        const paypalRes = await fetch('/api/payment/paypal/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(paypalBody),
+        })
+        const paypalData = await paypalRes.json()
+        setLast(paypalData)
+        if (!paypalRes.ok || !paypalData.ok) throw new Error(paypalData.error || 'تعذر إنشاء طلب PayPal')
+        window.location.href = paypalData.approvalUrl
+        return
+      }
       const body: any = { methodId, txRef }
       if (tab === 'packs' && selectedPack) body.packId = selectedPack.id
       if (tab === 'plans' && selectedPlan) body.planId = selectedPlan.id
@@ -135,7 +164,7 @@ export default function BillingPage() {
                 ) : null}
               </div>
               <div className="text-lg font-semibold mt-1">
-                {p.priceUsd === 0 ? 'مجاناً' : `\[ {p.priceUsd}/شهر`}
+                {p.priceUsd === 0 ? 'مجاناً' : `$${p.priceUsd}/شهر`}
               </div>
               <div className="text-xs text-gray-500">{p.monthlyRemo} REMO شهرياً</div>
               <ul className="mt-2 text-xs text-gray-600 dark:text-gray-300 space-y-1">
@@ -212,10 +241,10 @@ export default function BillingPage() {
             </p>
           </div>
           <a
-            href={`https://wa.me/\( {JEEB_WHATSAPP}?text= \){encodeURIComponent(
-              'السلام عليكم، تم إيداع مبلغ لشحن REMO في منصة محمد الحازمي AI.%0Aرقم الإيداع: ' +
+href={`https://wa.me/${JEEB_WHATSAPP}?text=${encodeURIComponent(
+              'السلام عليكم، تم إيداع مبلغ لشحن REMO في منصة محمد الحزمي AI.\nرقم الإيداع: ' +
                 JEEB_DEPOSIT_NUMBER +
-                '%0Aأرفق إشعار الإيداع.'
+                '\nأرفق إشعار الإيداع.'
             )}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -259,14 +288,14 @@ export default function BillingPage() {
               className="mt-2 inline-flex items-center justify-center w-full rounded-xl bg-green-600 text-white py-2 text-sm"
               target="_blank"
               rel="noopener noreferrer"
-              href={`https://wa.me/\( {JEEB_WHATSAPP}?text= \){encodeURIComponent(
-                'تم إنشاء طلب شحن REMO%0Aرقم الطلب: ' +
+              href={`https://wa.me/${JEEB_WHATSAPP}?text=${encodeURIComponent(
+                'تم إنشاء طلب شحن REMO\nرقم الطلب: ' +
                   (last?.paymentId || '') +
-                  '%0Aالمبلغ: ' +
+                  '\nالمبلغ: ' +
                   (last?.amount || '') +
                   ' ' +
                   (last?.currency || '') +
-                  '%0Aأرفق إشعار الإيداع لرقم ' +
+                  '\nأرفق إشعار الإيداع لرقم ' +
                   JEEB_DEPOSIT_NUMBER
               )}`}
             >

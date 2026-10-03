@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs'
 import path from 'path'
+import { prisma } from '@/lib/prisma'
 
 export type KnowledgeItem = {
   id: string
@@ -27,6 +28,7 @@ export type AssistantConfig = {
 }
 
 const FILE = path.join(process.cwd(), 'data', 'platform-assistant.json')
+const SETTING_KEY = 'platform_assistant'
 
 /** مرادفات عربية لتحسين دقة البحث */
 const SYNONYMS: Record<string, string[]> = {
@@ -106,8 +108,34 @@ const DEFAULT_CONFIG: AssistantConfig = {
     'لم أجد تطابقاً قوياً في معرفة المنصة. أعد صياغة السؤال أو اذكر اسم الخدمة. المالك يضيف مواضيع جديدة من لوحة «مساعد المنصة».',
   personality: 'عربي واضح، مختصر، عملي، يوجّه المستخدم لخطوات داخل المنصة.',
   enabled: true,
-  useSmallModel: true,
+  useSmallModel: false,
   items: DEFAULT_ITEMS,
+}
+
+async function searchWebFallback(query: string): Promise<{ text: string; links: { label: string; href: string }[] } | null> {
+  try {
+    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query.slice(0, 300))}`
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 PlatformAssistant/1.0' }, cache: 'no-store' })
+    if (!res.ok) return null
+    const html = await res.text()
+    const rows: { text: string; href: string }[] = []
+    const re = /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi
+    let match: RegExpExecArray | null
+    const clean = (s: string) => s.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&#x27;|&#39;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, ' ').trim()
+    while ((match = re.exec(html)) && rows.length < 3) {
+      const href = match[1]
+      const title = clean(match[2])
+      const snippet = clean(match[3])
+      if (title && snippet && /^https?:\/\//i.test(href)) rows.push({ href, text: `${title}: ${snippet}` })
+    }
+    if (!rows.length) return null
+    return {
+      text: `لم أجد إجابة في قاعدة معرفة المنصة، فبحثت في الويب.\n\n${rows.map((r) => `• ${r.text}`).join('\n\n')}`,
+      links: rows.map((r) => ({ label: r.text.split(':')[0].slice(0, 70), href: r.href })),
+    }
+  } catch {
+    return null
+  }
 }
 
 function normalize(s: string) {
@@ -139,8 +167,8 @@ function expandTokens(msg: string): Set<string> {
 
 export async function getAssistantConfig(): Promise<AssistantConfig> {
   try {
-    const raw = await fs.readFile(FILE, 'utf8')
-    const data = JSON.parse(raw)
+    const row = await prisma.setting.findUnique({ where: { key: SETTING_KEY } })
+    const data = row?.value ? JSON.parse(row.value) : {}
     return {
       ...DEFAULT_CONFIG,
       ...data,
@@ -150,7 +178,17 @@ export async function getAssistantConfig(): Promise<AssistantConfig> {
           : DEFAULT_ITEMS,
     }
   } catch {
-    return { ...DEFAULT_CONFIG, items: [...DEFAULT_ITEMS] }
+    try {
+      const raw = await fs.readFile(FILE, 'utf8')
+      const data = JSON.parse(raw)
+      return {
+        ...DEFAULT_CONFIG,
+        ...data,
+        items: Array.isArray(data.items) && data.items.length ? data.items : DEFAULT_ITEMS,
+      }
+    } catch {
+      return { ...DEFAULT_CONFIG, items: [...DEFAULT_ITEMS] }
+    }
   }
 }
 
@@ -164,8 +202,11 @@ export async function saveAssistantConfig(
     items: patch.items ?? cur.items,
     updatedAt: new Date().toISOString(),
   }
-  await fs.mkdir(path.dirname(FILE), { recursive: true })
-  await fs.writeFile(FILE, JSON.stringify(next, null, 2), 'utf8')
+  await prisma.setting.upsert({
+    where: { key: SETTING_KEY },
+    create: { key: SETTING_KEY, value: JSON.stringify(next) },
+    update: { value: JSON.stringify(next) },
+  })
   return next
 }
 
@@ -227,7 +268,7 @@ ${baseAnswer}`
           contents: [
             {
               role: 'user',
-              parts: [{ text: `سؤال المستخدم: \( {userMsg}\n\n \){system}` }],
+              parts: [{ text: `سؤال المستخدم: ${userMsg}\n\n${system}` }],
             },
           ],
           generationConfig: { maxOutputTokens: 400, temperature: 0.4 },
@@ -312,6 +353,10 @@ export async function replyOpen(
     .sort((a, b) => b.score - a.score)
 
   if (!ranked.length) {
+    const web = await searchWebFallback(msg)
+    if (web) {
+      return { text: web.text, matchedIds: [], links: web.links, engine: 'local+web-search' }
+    }
     return {
       text: cfg.fallback,
       matchedIds: [],

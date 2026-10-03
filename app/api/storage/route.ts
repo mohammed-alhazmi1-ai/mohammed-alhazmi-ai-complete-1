@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
         configured: false,
         buckets: STORAGE_BUCKETS,
         files: [],
-        message: 'أضف مفاتيح Supabase وأنشئ الـ Buckets من لوحة Supabase → Storage',
+        message: 'أضف BLOB_READ_WRITE_TOKEN واربط Vercel Blob Store بالمشروع',
       });
     }
 

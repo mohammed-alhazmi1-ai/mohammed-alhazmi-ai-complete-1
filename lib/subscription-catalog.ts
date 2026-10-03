@@ -48,6 +48,16 @@ export const PLAN_CATALOG: PlanCard[] = [
     features: ['شات وكود بلا حدود', '500 Credit شهرياً', 'صور وفيديو وصوت', 'أولوية دعم'],
   },
   {
+    id: 'Creator',
+    name: 'Creator',
+    nameAr: 'صانع المحتوى',
+    price: 12,
+    chat: '500 رسالة / شهر',
+    code: '100 طلب / شهر',
+    credits: 550,
+    features: ['فيديو وصوت', '550 Credit شهرياً', 'أولوية للوسائط', 'دعم عبر البريد'],
+  },
+  {
     id: 'Business',
     name: 'Business',
     nameAr: 'أعمال',
@@ -66,5 +76,15 @@ export const PLAN_CATALOG: PlanCard[] = [
     code: 'بلا حدود',
     credits: 5000,
     features: ['كل المزايا', '5000 Credit', 'أولوية قصوى', 'حدود مرتفعة للوسائط'],
+  },
+  {
+    id: 'Enterprise',
+    name: 'Enterprise',
+    nameAr: 'مؤسسات',
+    price: 149,
+    chat: 'بلا حدود',
+    code: 'بلا حدود',
+    credits: 12000,
+    features: ['كل خدمات المنصة', '12000 Credit', 'أولوية قصوى', 'دعم مخصص'],
   },
 ];

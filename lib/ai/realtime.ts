@@ -1,8 +1,7 @@
 /**
  * توليد متعدد القدرات:
- * يحترم اختيار المستخدم للمزود (gemini | replicate | huggingface | auto)
+ * يحترم اختيار المستخدم للمزود (openai | gemini | replicate | huggingface | auto)
  * أنواع: chat | code | images | video | music
- * بدون OpenAI
  */
 
 export type GenType = 'chat' | 'images' | 'video' | 'music' | 'code'
@@ -12,7 +11,7 @@ export type GenInput = {
   prompt: string
   userId?: string
   model?: string
-  /** gemini | huggingface | replicate | auto */
+  /** openai | gemini | huggingface | replicate | auto */
   provider?: string
 }
 
@@ -22,6 +21,9 @@ export type GenResult = {
   model: string
   text?: string
   imageUrl?: string
+  pending?: boolean
+  taskId?: string
+  taskUrl?: string
   error?: string
   raw?: unknown
 }
@@ -40,27 +42,75 @@ function replicateToken() {
   return env('REPLICATE_API_TOKEN') || env('REPLICATE_API_KEY')
 }
 
-function normProvider(p?: string): 'gemini' | 'huggingface' | 'replicate' | 'pollinations' | 'auto' {
+function openaiKey() {
+  return env('OPENAI_API_KEY')
+}
+
+function normProvider(p?: string): 'openai' | 'gemini' | 'huggingface' | 'replicate' | 'pollinations' | 'manus' | 'auto' {
   const x = (p || 'auto').toLowerCase()
-  if (x.includes('openai') || x.includes('gpt')) return 'auto'
+  if (x.includes('openai') || x.includes('gpt')) return 'openai'
   if (x.includes('gemini') || x.includes('google')) return 'gemini'
   if (x.includes('hugging') || x === 'hf') return 'huggingface'
   if (x.includes('replicate')) return 'replicate'
+  if (x.includes('manus')) return 'manus'
   return 'auto'
 }
 
 /** ترتيب المحاولة: المفضّل أولاً ثم الباقي */
 function orderProviders(
-  preferred: 'gemini' | 'huggingface' | 'replicate' | 'pollinations' | 'auto',
+  preferred: 'openai' | 'gemini' | 'huggingface' | 'replicate' | 'pollinations' | 'manus' | 'auto',
   forType: GenType
-): Array<'gemini' | 'huggingface' | 'replicate' | 'pollinations'> {
-  const all: Array<'gemini' | 'huggingface' | 'replicate' | 'pollinations'> =
-    forType === 'images' || forType === 'video' || forType === 'music'
-      ? ['pollinations', 'huggingface', 'gemini']
-      : ['pollinations', 'gemini', 'huggingface']
+): Array<'openai' | 'gemini' | 'huggingface' | 'replicate' | 'pollinations' | 'manus'> {
+  const all: Array<'openai' | 'gemini' | 'huggingface' | 'replicate' | 'pollinations' | 'manus'> =
+    forType === 'images'
+      ? ['pollinations', 'replicate', 'huggingface', 'gemini']
+      : forType === 'video' || forType === 'music'
+        ? ['manus', 'replicate', 'pollinations', 'gemini']
+        : ['openai', 'pollinations', 'gemini', 'huggingface', 'replicate']
 
   if (preferred === 'auto') return all
   return [preferred, ...all.filter((p) => p !== preferred)]
+}
+
+// ─── OpenAI نص ───────────────────────────────────────────
+async function openaiChat(prompt: string, preferredModel = 'gpt-4o-mini'): Promise<GenResult> {
+  const key = openaiKey()
+  if (!key) {
+    return { ok: false, provider: 'openai', model: preferredModel, error: 'OPENAI_API_KEY مفقود' }
+  }
+
+  const model = preferredModel.startsWith('gpt-') ? preferredModel : 'gpt-4o-mini'
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+      }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      return {
+        ok: false,
+        provider: 'openai',
+        model,
+        error: data?.error?.message || `OpenAI HTTP ${res.status}`,
+        raw: data,
+      }
+    }
+    const text = data?.choices?.[0]?.message?.content
+    if (!String(text || '').trim()) {
+      return { ok: false, provider: 'openai', model, error: 'رد فارغ من OpenAI', raw: data }
+    }
+    return { ok: true, provider: 'openai', model, text: String(text), raw: data }
+  } catch (e: any) {
+    return { ok: false, provider: 'openai', model, error: e?.message || 'خطأ OpenAI' }
+  }
 }
 
 // ─── Gemini نص ───────────────────────────────────────────
@@ -117,7 +167,7 @@ async function geminiChat(prompt: string, model = 'gemini-2.0-flash'): Promise<G
     ok: false,
     provider: 'gemini',
     model,
-    error: 'تعذر Gemini (تحقق من المفتاح AQ. والنموذج)',
+    error: 'تعذر Gemini (تحقق من المفتاح والنموذج)',
   }
 }
 
@@ -255,7 +305,7 @@ async function hfImage(prompt: string): Promise<GenResult> {
       }
     }
     const buf = Buffer.from(await res.arrayBuffer())
-    const imageUrl = `data:\( {ctype || 'image/png'};base64, \){buf.toString('base64')}`
+    const imageUrl = `data:${ctype || 'image/png'};base64,${buf.toString('base64')}`
     return {
       ok: true,
       provider: 'huggingface',
@@ -436,7 +486,7 @@ async function pollinationsImage(prompt: string): Promise<GenResult> {
     const q = encodeURIComponent(prompt.slice(0, 800))
     // المفتاح في الاستعلام أو الترويسة
     const url =
-      `https://gen.pollinations.ai/image/\( {q}?model= \){model}&width=1024&height=1024&nologo=true&key=${encodeURIComponent(key)}`
+      `https://gen.pollinations.ai/image/${q}?model=${model}&width=1024&height=1024&nologo=true&key=${encodeURIComponent(key)}`
     const res = await fetch(url, {
       method: 'GET',
       headers: {
@@ -470,7 +520,7 @@ async function pollinationsImage(prompt: string): Promise<GenResult> {
         ? 'image/webp'
         : 'image/jpeg'
     const b64 = buf.toString('base64')
-    const dataUrl = `data:\( {mime};base64, \){b64}`
+    const dataUrl = `data:${mime};base64,${b64}`
     return {
       ok: true,
       provider: 'pollinations',
@@ -490,11 +540,12 @@ async function pollinationsImage(prompt: string): Promise<GenResult> {
 
 
 async function runOne(
-  provider: 'gemini' | 'huggingface' | 'replicate' | 'pollinations',
+  provider: 'openai' | 'gemini' | 'huggingface' | 'replicate' | 'pollinations' | 'manus',
   type: GenType,
   prompt: string
 ): Promise<GenResult> {
   if (type === 'chat' || type === 'code') {
+    if (provider === 'openai') return openaiChat(prompt)
     if (provider === 'gemini') return geminiChat(prompt)
     if (provider === 'huggingface') return hfChat(prompt)
     return replicateText(prompt)
@@ -521,6 +572,10 @@ async function runOne(
     }
   }
   if (type === 'video') {
+    if (provider === 'manus') {
+      const { createManusMediaTask } = await import('@/lib/ai/manus')
+      return createManusMediaTask('video', prompt, process.env.MANUS_WEBHOOK_URL)
+    }
     if (provider === 'replicate') return replicateVideo(prompt)
     // الآخرون: سيناريو نصي
     const g = await (provider === 'huggingface' ? hfChat : geminiChat)(
@@ -531,6 +586,10 @@ async function runOne(
       : g
   }
   if (type === 'music') {
+    if (provider === 'manus') {
+      const { createManusMediaTask } = await import('@/lib/ai/manus')
+      return createManusMediaTask('music', prompt, process.env.MANUS_WEBHOOK_URL)
+    }
     if (provider === 'replicate') return replicateMusic(prompt)
     const g = await (provider === 'huggingface' ? hfChat : geminiChat)(
       `اكتب وصفاً موسيقياً + English prompt لمولد موسيقى/شيلة/زفة:\n${prompt}`

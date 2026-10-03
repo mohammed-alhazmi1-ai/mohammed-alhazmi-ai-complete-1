@@ -1,6 +1,6 @@
 'use client'
 
-import { getSupabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/auth/client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -26,7 +26,7 @@ type Thread = {
 }
 
 function storageKey(service: string, email?: string) {
-  return `remo_threads_\( {service}_ \){(email || 'guest').toLowerCase()}`
+  return `remo_threads_${service}_${(email || 'guest').toLowerCase()}`
 }
 
 function loadLocalThreads(service: string, email?: string): Thread[] {

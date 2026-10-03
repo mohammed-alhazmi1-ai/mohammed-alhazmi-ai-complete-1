@@ -11,8 +11,8 @@ const COST: Record<string, number> = {
   chat: 5,
   code: 10,
   images: 20,
-  video: 40,
-  music: 25,
+  video: 100,
+  music: 100,
 }
 
 function mapType(raw: string): GenType {
@@ -26,10 +26,12 @@ function mapType(raw: string): GenType {
 
 function pickProvider(body: any): string {
   const p = String(body.provider || body.selectedProvider || body.model || 'auto').toLowerCase()
-  if (p.includes('openai') || p.includes('gpt')) return 'auto'
+  if (p.includes('openai') || p.includes('gpt')) return 'openai'
   if (p.includes('gemini') || p.includes('google')) return 'gemini'
   if (p.includes('hugging') || p === 'hf') return 'huggingface'
   if (p.includes('replicate')) return 'replicate'
+  if (p.includes('pollination')) return 'pollinations'
+  if (p.includes('manus')) return 'manus'
   return 'auto'
 }
 
@@ -46,35 +48,7 @@ async function resolveUserId(req: NextRequest, body: any): Promise<string | null
     }
   }
 
-  // 2) Supabase access token
-  const auth = req.headers.get('authorization') || ''
-  const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : ''
-  const sbUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim()
-  const sbKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim()
-
-  if (token && sbUrl && sbKey) {
-    try {
-      const { createClient } = await import('@supabase/supabase-js')
-      const sb = createClient(sbUrl, sbKey, {
-        global: { headers: { Authorization: `Bearer ${token}` } },
-        auth: { persistSession: false, autoRefreshToken: false },
-      })
-      const { data } = await sb.auth.getUser(token)
-      const email = data?.user?.email
-      if (email) {
-        const u = await ensureUserByEmail(email.toLowerCase(), {
-          firstName: data.user.user_metadata?.first_name,
-          lastName: data.user.user_metadata?.last_name,
-          username: data.user.user_metadata?.username,
-        })
-        return u.id
-      }
-    } catch {
-      /* */
-    }
-  }
-
-  // 3) كوكي شائع إن وُجد
+  // 2) كوكي بريد قديم إن وُجد
   const cookieEmail =
     req.cookies.get('user_email')?.value ||
     req.cookies.get('email')?.value ||
@@ -162,7 +136,7 @@ export async function POST(req: NextRequest) {
     let creditsLeft: number | undefined
 
     // خصم الرصيد فقط عند نجاح التوليد
-    if (userId && result.ok) {
+    if (userId && result.ok && !result.pending) {
       try {
         creditsLeft = await deductCredits(
           userId,
@@ -180,11 +154,11 @@ export async function POST(req: NextRequest) {
         await prisma.aiJob.update({
           where: { id: jobId },
           data: {
-            status: result.ok ? 'completed' : 'failed',
+            status: result.pending ? 'processing' : result.ok ? 'completed' : 'failed',
             provider: result.provider,
-            result: (result.text || result.error || '').slice(0, 5000),
+            result: (result.text || result.error || result.taskId || '').slice(0, 5000),
             resultUrl: result.imageUrl || null,
-            creditsUsed: result.ok ? cost : 0,
+            creditsUsed: result.ok && !result.pending ? cost : 0,
           } as any,
         })
       } catch {
@@ -204,6 +178,9 @@ export async function POST(req: NextRequest) {
         cost,
         creditsLeft,
         userBound: Boolean(userId),
+        pending: Boolean(result.pending),
+        taskId: result.taskId,
+        taskUrl: result.taskUrl,
       })
     }
 
@@ -213,10 +190,13 @@ export async function POST(req: NextRequest) {
       text: result.text,
       result: result.text,
       imageUrl: result.imageUrl,
+      pending: Boolean(result.pending),
+      taskId: result.taskId,
+      taskUrl: result.taskUrl,
       provider: result.provider,
       model: result.model,
       type,
-      cost: userId ? cost : 0,
+      cost: userId && !result.pending ? cost : 0,
       creditsLeft,
       userBound: Boolean(userId),
       jobId,
@@ -232,7 +212,7 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    providers: ['gemini', 'huggingface', 'replicate'],
+    providers: ['openai', 'gemini', 'huggingface', 'replicate', 'pollinations'],
     types: Object.keys(COST),
     costs: COST,
   })

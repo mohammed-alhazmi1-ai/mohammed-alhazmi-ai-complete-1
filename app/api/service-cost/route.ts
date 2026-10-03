@@ -6,9 +6,9 @@ const COSTS: Record<string, { cost: number; free: boolean; note: string }> = {
   text: { cost: 0, free: true, note: 'مجاني ضمن حد الخطة' },
   images: { cost: 20, free: false, note: 'يُخصم بعد نجاح التنفيذ' },
   image: { cost: 20, free: false, note: 'يُخصم بعد نجاح التنفيذ' },
-  video: { cost: 120, free: false, note: 'يُخصم بعد نجاح التنفيذ' },
-  music: { cost: 30, free: false, note: 'يُخصم بعد نجاح التنفيذ' },
-  audio: { cost: 30, free: false, note: 'يُخصم بعد نجاح التنفيذ' },
+  video: { cost: 100, free: false, note: 'يُخصم بعد اكتمال التنفيذ' },
+  music: { cost: 100, free: false, note: 'يُخصم بعد اكتمال التنفيذ' },
+  audio: { cost: 100, free: false, note: 'يُخصم بعد اكتمال التنفيذ' },
 };
 
 export async function GET(req: NextRequest) {
