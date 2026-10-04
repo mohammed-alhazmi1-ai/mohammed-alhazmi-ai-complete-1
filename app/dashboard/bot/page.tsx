@@ -77,9 +77,17 @@ export default function BotPage() {
       dir="rtl"
     >
       <header className="border-b border-slate-200 px-4 py-3 flex justify-between bg-white">
-        <div>
-          <h1 className="font-bold">{name}</h1>
+        <div className="flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/renas-logo.png"
+            alt="لوجو ريناس"
+            className="h-12 w-12 rounded-full object-cover ring-2 ring-violet-200 shadow-sm"
+          />
+          <div>
+            <h1 className="font-bold">{name}</h1>
             <p className="text-xs text-slate-500">مساعدة محلية متعددة المجالات مع بحث تلقائي في الويب</p>
+          </div>
         </div>
       </header>
 
