@@ -1,7 +1,5 @@
 'use client'
 
-import { getSupabase } from '@/lib/supabase'
-
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 
@@ -26,7 +24,7 @@ type Thread = {
 }
 
 function storageKey(service: string, email?: string) {
-  return `remo_threads_\( {service}_ \){(email || 'guest').toLowerCase()}`
+  return `remo_threads_${service}_${(email || 'guest').toLowerCase()}`
 }
 
 function loadLocalThreads(service: string, email?: string): Thread[] {
@@ -114,6 +112,7 @@ export default function ServiceWorkspace({ service }: { service: string }) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const pendingJobsRef = useRef(new Set<string>())
 
   useEffect(() => {
     ;(async () => {
@@ -153,6 +152,29 @@ export default function ServiceWorkspace({ service }: { service: string }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/conversations?service=${encodeURIComponent(service)}`, { credentials: 'include', cache: 'no-store' })
+        if (!res.ok) return
+        const data = await res.json().catch(() => ({}))
+        const remote: Thread[] = (data.conversations || []).map((row: any) => ({
+          id: row.id,
+          title: row.title || 'محادثة جديدة',
+          service: row.service || service,
+          messages: (row.messages || []).map((m: any) => ({ id: m.id, role: m.role, content: m.content, imageUrl: m.imageUrl || undefined, provider: m.provider || undefined, model: m.model || undefined, cost: m.cost ?? undefined })),
+          updatedAt: new Date(row.updatedAt || Date.now()).getTime(),
+        }))
+        if (!cancelled && remote.length) {
+          setThreads(remote)
+          saveLocalThreads(service, userEmail, remote)
+        }
+      } catch { /* local history remains available */ }
+    })()
+    return () => { cancelled = true }
+  }, [service, userEmail])
+
   const costLabel = useMemo(() => meta.cost, [meta.cost])
 
   
@@ -177,6 +199,38 @@ export default function ServiceWorkspace({ service }: { service: string }) {
       a.rel = 'noopener'
       a.click()
     } catch { /* */ }
+  }
+
+  async function watchPendingJob(jobId: string) {
+    if (!jobId || pendingJobsRef.current.has(jobId)) return
+    pendingJobsRef.current.add(jobId)
+    try {
+      for (let attempt = 0; attempt < 36; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 5000))
+        const res = await fetch('/api/jobs', { credentials: 'include', cache: 'no-store' })
+        if (!res.ok) continue
+        const data = await res.json().catch(() => ({}))
+        const job = (data.jobs || []).find((item: any) => item.id === jobId)
+        if (!job || ['pending', 'processing'].includes(String(job.status).toLowerCase())) continue
+        const failed = String(job.status).toLowerCase() === 'failed'
+        setMessages((current) => {
+          if (current.some((m) => m.id === `job-result-${jobId}`)) return current
+          return [...current, {
+            id: `job-result-${jobId}`,
+            role: 'assistant' as const,
+            content: failed ? (job.errorMsg || 'فشلت مهمة إنتاج الوسائط. تحقق من إعدادات Manus ثم أعد المحاولة.') : (job.result || 'اكتملت المهمة بنجاح.'),
+            imageUrl: failed ? undefined : (job.resultUrl || undefined),
+            provider: job.provider,
+            model: job.model,
+            cost: job.creditsUsed,
+          }]
+        })
+        return
+      }
+      setError('لم تصل نتيجة Manus خلال 3 دقائق. يمكنك متابعة الحالة من سجل الطلبات.')
+    } finally {
+      pendingJobsRef.current.delete(jobId)
+    }
   }
 
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -247,6 +301,18 @@ export default function ServiceWorkspace({ service }: { service: string }) {
       }
       const list = [row, ...others].slice(0, 40)
       saveLocalThreads(service, userEmail, list)
+      void fetch('/api/conversations', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: id, service, title, messages: next }),
+      }).then(async (res) => {
+        const data = await res.json().catch(() => ({}))
+        if (res.ok && data.conversationId && data.conversationId !== id) {
+          setThreadId(data.conversationId)
+          setThreads((current) => current.map((item) => item.id === id ? { ...item, id: data.conversationId } : item))
+        }
+      }).catch(() => undefined)
       return list
     })
   }
@@ -270,24 +336,22 @@ export default function ServiceWorkspace({ service }: { service: string }) {
         .map((m) => (m.role === 'user' ? 'المستخدم: ' : 'المساعد: ') + m.content)
         .join('\n')
       const fullPrompt =
-        history.length > prompt.length + 10
+        meta.type === 'chat' && history.length > prompt.length + 10
           ? `المحادثة السابقة:\n${history}\n\nالرد على آخر رسالة للمستخدم فقط بشكل مفيد.`
           : prompt
 
-      let accessToken = ''
-      let userEmail = ''
+      let requestEmail = userEmail
       try {
-        const sb = getSupabase()
-        const { data: { session } } = await sb.auth.getSession()
-        accessToken = session?.access_token || ''
-        userEmail = session?.user?.email || ''
+        const sessionRes = await fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
+        const sessionData = await sessionRes.json().catch(() => ({}))
+        requestEmail = sessionData.user?.email || requestEmail
+        if (requestEmail) setUserEmail(requestEmail)
       } catch { /* */ }
 
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -295,7 +359,7 @@ export default function ServiceWorkspace({ service }: { service: string }) {
           type: meta.type,
           provider: provider === 'auto' ? undefined : provider,
           service,
-          email: userEmail || undefined,
+          email: requestEmail || undefined,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -343,6 +407,7 @@ export default function ServiceWorkspace({ service }: { service: string }) {
         persistMessages(next)
         return next
       })
+      if (data.pending && data.jobId) void watchPendingJob(String(data.jobId))
     } catch (e: any) {
       setError(e?.message || 'خطأ شبكة')
     } finally {

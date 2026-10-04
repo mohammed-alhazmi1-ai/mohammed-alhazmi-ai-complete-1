@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs'
 import path from 'path'
+import { prisma } from '@/lib/prisma'
 
 export type ServiceToggle = {
   id: string
@@ -95,6 +96,7 @@ export type PlatformFullSettings = {
 }
 
 const FILE = path.join(process.cwd(), 'data', 'platform-settings-full.json')
+const SETTING_KEY = 'platform_settings_full'
 
 const DEFAULT_SERVICES: ServiceToggle[] = [
   { id: 'images', name: 'الصور', href: '/dashboard/images', enabled: true, order: 1 },
@@ -200,8 +202,8 @@ export const DEFAULT_FULL: PlatformFullSettings = {
 
 export async function getFullSettings(): Promise<PlatformFullSettings> {
   try {
-    const raw = await fs.readFile(FILE, 'utf8')
-    const data = JSON.parse(raw)
+    const row = await prisma.setting.findUnique({ where: { key: SETTING_KEY } })
+    const data = row?.value ? JSON.parse(row.value) : {}
     return {
       ...DEFAULT_FULL,
       ...data,
@@ -223,7 +225,20 @@ export async function getFullSettings(): Promise<PlatformFullSettings> {
       },
     }
   } catch {
-    return { ...DEFAULT_FULL, landing: { ...DEFAULT_LANDING } }
+    try {
+      const raw = await fs.readFile(FILE, 'utf8')
+      const data = JSON.parse(raw)
+      return {
+        ...DEFAULT_FULL,
+        ...data,
+        services: Array.isArray(data.services) && data.services.length ? data.services : DEFAULT_SERVICES,
+        socialLinks: Array.isArray(data.socialLinks) && data.socialLinks.length ? data.socialLinks : DEFAULT_SOCIAL,
+        navButtons: Array.isArray(data.navButtons) && data.navButtons.length ? data.navButtons : DEFAULT_NAV,
+        landing: { ...DEFAULT_LANDING, ...(data.landing && typeof data.landing === 'object' ? data.landing : {}) },
+      }
+    } catch {
+      return { ...DEFAULT_FULL, landing: { ...DEFAULT_LANDING } }
+    }
   }
 }
 
@@ -244,7 +259,10 @@ export async function saveFullSettings(
     },
     updatedAt: new Date().toISOString(),
   }
-  await fs.mkdir(path.dirname(FILE), { recursive: true })
-  await fs.writeFile(FILE, JSON.stringify(next, null, 2), 'utf8')
+  await prisma.setting.upsert({
+    where: { key: SETTING_KEY },
+    create: { key: SETTING_KEY, value: JSON.stringify(next) },
+    update: { value: JSON.stringify(next) },
+  })
   return next
 }

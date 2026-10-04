@@ -118,13 +118,13 @@ export async function executeServiceJob(input: JobRequest): Promise<JobResponse>
     if (serviceType === 'code' || serviceType === 'text') {
       if (!paid && codeLimit !== null && usage.codeUsed >= codeLimit) {
         throw Object.assign(
-          new Error(`انتهى حد طلبات البرمجة (\( {usage.codeUsed}/ \){codeLimit}). رقِّ الخطة أو انتظر التجديد.`),
+          new Error(`انتهى حد طلبات البرمجة (${usage.codeUsed}/${codeLimit}). رقِّ الخطة أو انتظر التجديد.`),
           { status: 402 }
         );
       }
     } else if (!paid && chatLimit !== null && usage.chatUsed >= chatLimit) {
       throw Object.assign(
-        new Error(`انتهى حد رسائل الشات (\( {usage.chatUsed}/ \){chatLimit}). رقِّ الخطة أو انتظر التجديد.`),
+        new Error(`انتهى حد رسائل الشات (${usage.chatUsed}/${chatLimit}). رقِّ الخطة أو انتظر التجديد.`),
         { status: 402 }
       );
     }

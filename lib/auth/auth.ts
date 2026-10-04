@@ -1,16 +1,4 @@
-import { getSupabase } from '@/lib/supabase';
-
-export function createBrowserClient() {
-  return getSupabase();
-}
-
-export async function getSession() {
-  const supabase = getSupabase();
-  const { data: { session } } = await supabase.auth.getSession();
-  return session;
-}
-
-export async function signOut() {
-  const supabase = getSupabase();
-  await supabase.auth.signOut();
-}
+import { getSupabase } from '@/lib/auth/client';
+export function createBrowserClient() { return getSupabase(); }
+export async function getSession() { const { data: { session } } = await getSupabase().auth.getSession(); return session; }
+export async function signOut() { await getSupabase().auth.signOut(); }

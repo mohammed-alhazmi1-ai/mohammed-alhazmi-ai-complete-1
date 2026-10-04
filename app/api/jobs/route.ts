@@ -1,28 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ensureUserByEmail } from '@/lib/credits'
 import { prisma } from '@/lib/prisma'
+import { getSessionUser } from '@/lib/auth/session'
 
 async function resolveEmail(req: NextRequest): Promise<string | null> {
   const q = req.nextUrl.searchParams.get('email')
   if (q) return q.trim().toLowerCase()
-
-  const auth = req.headers.get('authorization') || ''
-  const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : ''
-  const sbUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim()
-  const sbKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim()
-  if (token && sbUrl && sbKey) {
-    try {
-      const { createClient } = await import('@supabase/supabase-js')
-      const sb = createClient(sbUrl, sbKey, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      })
-      const { data } = await sb.auth.getUser(token)
-      if (data?.user?.email) return data.user.email.toLowerCase()
-    } catch {
-      /* */
-    }
-  }
-  return null
+  const user = await getSessionUser()
+  return user?.email?.toLowerCase() || null
 }
 
 export async function GET(req: NextRequest) {

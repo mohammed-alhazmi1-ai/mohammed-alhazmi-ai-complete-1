@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       videoUrl: result.videoUrl || null,
       engine: result.engine,
       unlimited: true,
-      provider: 'platform-assistant',
+      provider: 'renas-local-assistant',
     })
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message || 'خطأ' }, { status: 500 })

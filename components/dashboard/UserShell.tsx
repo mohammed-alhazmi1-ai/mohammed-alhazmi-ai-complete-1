@@ -4,7 +4,7 @@ import SocialButtons from '@/components/site/SocialButtons'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { getSupabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/auth/client'
 
 const supabase = getSupabase()
 
@@ -29,9 +29,10 @@ export default function UserShell({ children }: { children: React.ReactNode }) {
   const [name, setName] = useState('...')
   const [plan, setPlan] = useState('Free')
   const [credits, setCredits] = useState<number | null>(null)
+  const [showEmpty, setShowEmpty] = useState(false)
 
   useEffect(() => {
-    ;(async () => {
+    const refresh = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (!session?.user) {
@@ -54,6 +55,7 @@ export default function UserShell({ children }: { children: React.ReactNode }) {
           })
           const data = await res.json()
           if (typeof data.credits === 'number') setCredits(data.credits)
+          if (typeof data.credits === 'number' && data.credits <= 0) setShowEmpty(true)
           if (data.plan) setPlan(data.plan)
           if (data.username || data.firstName) {
             setName(
@@ -68,7 +70,10 @@ export default function UserShell({ children }: { children: React.ReactNode }) {
       } catch {
         /* */
       }
-    })()
+    }
+    refresh()
+    const timer = window.setInterval(refresh, 15000)
+    return () => window.clearInterval(timer)
   }, [])
 
   const logout = async () => {
@@ -172,6 +177,20 @@ export default function UserShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+      {showEmpty && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-3xl border border-amber-500/40 bg-slate-900 p-6 text-center shadow-2xl" dir="rtl">
+            <div className="text-4xl mb-3">⚠️</div>
+            <h2 className="text-xl font-bold text-white">انتهى رصيدك</h2>
+            <p className="mt-2 text-sm text-slate-300">نفد رصيد REMO الخاص بك. اختر خطة اشتراك أو اشحن رصيدك لمتابعة استخدام خدمات المنصة.</p>
+            <div className="mt-5 flex gap-2 justify-center">
+              <Link href="/dashboard/plans" onClick={() => setShowEmpty(false)} className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white">عرض الخطط</Link>
+              <Link href="/dashboard/billing" onClick={() => setShowEmpty(false)} className="rounded-xl border border-slate-600 px-5 py-2.5 text-sm text-slate-200">شحن الرصيد</Link>
+              <button type="button" onClick={() => setShowEmpty(false)} className="rounded-xl px-3 py-2.5 text-sm text-slate-400">لاحقاً</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

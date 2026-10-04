@@ -2,6 +2,38 @@ import { prisma } from '@/lib/prisma';
 
 export const COST_PER_TEXT = 5;
 
+async function refreshDailyCredits(userId: string) {
+  const day = new Date().toISOString().slice(0, 10);
+  const key = `daily_credit_refresh:${userId}`;
+  const marker = await prisma.setting.findUnique({ where: { key } }).catch(() => null);
+  if (marker?.value === day) return;
+
+  const wallet = await prisma.wallet.findUnique({ where: { userId } });
+  if (!wallet) return;
+  const added = Math.max(0, 100 - (wallet.freeCredits || 0));
+  if (added > 0) {
+    const updated = await prisma.wallet.update({
+      where: { userId },
+      data: { freeCredits: 100 },
+    });
+    await prisma.walletTransaction.create({
+      data: {
+        userId,
+        type: 'credit',
+        amount: added,
+        balanceAfter: totalCredits(updated),
+        description: 'تجديد الرصيد المجاني اليومي',
+        reference: day,
+      },
+    }).catch(() => undefined);
+  }
+  await prisma.setting.upsert({
+    where: { key },
+    create: { key, value: day },
+    update: { value: day },
+  });
+}
+
 export async function ensureUserByEmail(
   email: string,
   meta?: {
@@ -63,6 +95,12 @@ export async function ensureUserByEmail(
     }))!;
   }
 
+  await refreshDailyCredits(user.id).catch(() => undefined);
+  user = (await prisma.user.findUnique({
+    where: { id: user.id },
+    include: { wallet: true, subscription: true },
+  }))!;
+
   return user;
 }
 
@@ -76,42 +114,31 @@ export function totalCredits(wallet: {
 }
 
 export async function deductCredits(userId: string, amount: number, note?: string) {
-  const wallet = await prisma.wallet.findUnique({ where: { userId } });
-  if (!wallet) throw new Error('لا توجد محفظة للمستخدم');
+  return prisma.$transaction(async (tx) => {
+    const wallet = await tx.wallet.findUnique({ where: { userId } });
+    if (!wallet) throw new Error('لا توجد محفظة للمستخدم');
+    const current = totalCredits(wallet);
+    if (current < amount) throw new Error('رصيد غير كافٍ. اشحن رصيدك أو فعّل كود هدية.');
 
-  const current = totalCredits(wallet);
-  if (current < amount) throw new Error('رصيد غير كافٍ. اشحن رصيدك أو فعّل كود هدية.');
+    let remaining = amount;
+    let free = wallet.freeCredits;
+    let paid = wallet.paidCredits;
+    let referral = wallet.referralCredits;
+    const take = (value: number) => {
+      const used = Math.min(value, remaining);
+      remaining -= used;
+      return value - used;
+    };
+    free = take(free);
+    paid = take(paid);
+    referral = take(referral);
 
-  let remaining = amount;
-  let free = wallet.freeCredits;
-  let paid = wallet.paidCredits;
-  let referral = wallet.referralCredits;
-
-  if (remaining > 0 && free > 0) {
-    const d = Math.min(free, remaining);
-    free -= d;
-    remaining -= d;
-  }
-  if (remaining > 0 && paid > 0) {
-    const d = Math.min(paid, remaining);
-    paid -= d;
-    remaining -= d;
-  }
-  if (remaining > 0 && referral > 0) {
-    const d = Math.min(referral, remaining);
-    referral -= d;
-    remaining -= d;
-  }
-
-  const updated = await prisma.wallet.update({
-    where: { userId },
-    data: { freeCredits: free, paidCredits: paid, referralCredits: referral },
-  });
-
-  const balanceAfter = totalCredits(updated);
-
-  try {
-    await prisma.walletTransaction.create({
+    const updated = await tx.wallet.update({
+      where: { userId },
+      data: { freeCredits: free, paidCredits: paid, referralCredits: referral },
+    });
+    const balanceAfter = totalCredits(updated);
+    await tx.walletTransaction.create({
       data: {
         userId,
         type: 'debit',
@@ -120,11 +147,8 @@ export async function deductCredits(userId: string, amount: number, note?: strin
         description: note || `خصم ${amount} نقطة`,
       },
     });
-  } catch {
-    /* ignore log failure */
-  }
-
-  return balanceAfter;
+    return balanceAfter;
+  }, { isolationLevel: 'Serializable' });
 }
 
 export async function isOwnerEmail(email: string) {

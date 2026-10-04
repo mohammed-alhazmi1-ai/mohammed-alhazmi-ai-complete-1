@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getSupabase, isSupabaseConfigured, supabaseConfigError } from "@/lib/supabase";
+import { getSupabase, isSupabaseConfigured, supabaseConfigError } from "@/lib/auth/client";
 import { PLANS } from "@/lib/subscription/plans";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 import { useLanguage } from "@/lib/i18n/LanguageContext";

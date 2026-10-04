@@ -29,7 +29,7 @@ export function getPlanLimits(planType: string): PlanLimits {
 
 export const MEDIA_COST: Record<string, number> = {
   chat: 0, code: 0, text: 0,
-  images: 20, image: 20, video: 120, music: 30, audio: 30,
+  images: 20, image: 20, video: 100, music: 100, audio: 100,
 };
 
 export function isMessageService(service: string) {

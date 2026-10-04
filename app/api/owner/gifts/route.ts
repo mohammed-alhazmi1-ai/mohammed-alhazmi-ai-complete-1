@@ -4,7 +4,7 @@ import { isOwnerEmail } from '@/lib/credits';
 
 function randomCode() {
   const part = () => Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `GIFT-\( {part()}- \){part()}`;
+  return `GIFT-${part()}-${part()}`;
 }
 
 export async function GET(req: NextRequest) {

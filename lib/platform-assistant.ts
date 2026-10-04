@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs'
 import path from 'path'
+import { prisma } from '@/lib/prisma'
 
 export type KnowledgeItem = {
   id: string
@@ -27,6 +28,7 @@ export type AssistantConfig = {
 }
 
 const FILE = path.join(process.cwd(), 'data', 'platform-assistant.json')
+const SETTING_KEY = 'platform_assistant'
 
 /** مرادفات عربية لتحسين دقة البحث */
 const SYNONYMS: Record<string, string[]> = {
@@ -98,16 +100,51 @@ const DEFAULT_ITEMS: KnowledgeItem[] = [
   },
 ]
 
+const LOCAL_ITEMS: KnowledgeItem[] = [
+  { id: 'science-local', title: 'العلوم', keywords: ['علوم', 'علم', 'فيزياء', 'كيمياء', 'احياء', 'فضاء', 'رياضيات'], answer: 'أستطيع شرح المفاهيم العلمية خطوة بخطوة وبأسلوب مبسّط، مع التفريق بين الحقيقة العلمية والفرضية. للسؤال عن نتيجة حديثة أو اكتشاف جديد سأبحث في الويب وأرفق المصادر.', enabled: true, priority: 5 },
+  { id: 'technology-local', title: 'التكنولوجيا', keywords: ['تقنية', 'تكنولوجيا', 'برمجة', 'ذكاء اصطناعي', 'حاسوب', 'جوال', 'امن سيبراني'], answer: 'أساعدك في فهم التقنيات والبرمجة والذكاء الاصطناعي والأمن الرقمي، ويمكنني تفكيك المشكلة إلى خطوات عملية وأمثلة. المعلومات المتغيرة مثل الإصدارات والأسعار أتحقق منها عبر الويب.', enabled: true, priority: 5 },
+  { id: 'literature-local', title: 'الأدب واللغة', keywords: ['ادب', 'شعر', 'رواية', 'لغة', 'نحو', 'كتابة', 'ترجمة'], answer: 'يمكنني مناقشة الأدب واللغة، تحليل نص أو قصيدة، تحسين الصياغة، وتقديم أفكار للكتابة مع احترام حقوق المؤلف وعدم اختلاق اقتباسات.', enabled: true, priority: 5 },
+  { id: 'sports-local', title: 'الرياضة', keywords: ['رياضة', 'كرة', 'دوري', 'لاعب', 'مباراة', 'تمرين'], answer: 'أستطيع شرح قواعد الرياضات وتقديم معلومات تدريبية عامة. نتائج المباريات والانتقالات والأخبار الرياضية تتغير، لذلك أبحث عنها في الويب عند السؤال عنها.', enabled: true, priority: 5 },
+  { id: 'health-local', title: 'الصحة', keywords: ['صحة', 'مرض', 'اعراض', 'دواء', 'غذاء', 'طبي', 'طبيب'], answer: 'أقدم معلومات صحية عامة وتثقيفية، لكنني لا أشخّص ولا أستبدل الطبيب. في الأعراض الشديدة أو الطارئة تواصل فوراً مع الطوارئ أو طبيب مؤهل، وسأذكر المصادر عند البحث.', enabled: true, priority: 5 },
+  { id: 'daily-local', title: 'الدردشة اليومية', keywords: ['كيف حالك', 'صباح', 'مساء', 'شكرا', 'نصيحة', 'فضفضة', 'دردشة'], answer: 'أنا ريناس، مساعدة ودودة للحوار والتفكير وتنظيم الأفكار. تحدث معي بحرية، وسأحافظ على سياق المحادثة وأجيب بأدب ووضوح.', enabled: true, priority: 5 },
+]
+
 const DEFAULT_CONFIG: AssistantConfig = {
-  name: 'مساعد منصة محمد الحزمي',
+  name: 'ريناس',
   welcome:
-    'مرحباً، أنا مساعد المنصة. اسأل بحرية عن الخدمات أو الرصيد أو الدفع — بلا حد لعدد الرسائل. يمكنني أيضاً إظهار صور أو فيديو إن أضافها المالك للمعرفة.',
+    'مرحباً، أنا ريناس. أساعدك في العلوم والتقنية والأدب والرياضة والصحة والدردشة اليومية، وأبحث في الويب تلقائياً عندما تحتاج الإجابة إلى معلومات غير موجودة لدي.',
   fallback:
-    'لم أجد تطابقاً قوياً في معرفة المنصة. أعد صياغة السؤال أو اذكر اسم الخدمة. المالك يضيف مواضيع جديدة من لوحة «مساعد المنصة».',
-  personality: 'عربي واضح، مختصر، عملي، يوجّه المستخدم لخطوات داخل المنصة.',
+    'لم أجد إجابة موثوقة في معرفتي المحلية، ولم تتوفر نتيجة بحث كافية الآن. أعد صياغة السؤال أو اطلب مني البحث في الويب مرة أخرى.',
+  personality: 'أنا ريناس: مساعدة عربية مثقفة، لبقة، دقيقة، ودودة. أشرح ببساطة، أذكر حدود اليقين، لا أختلق المعلومات، وأستخدم البحث في الويب للمعلومات الحديثة أو غير المؤكدة.',
   enabled: true,
   useSmallModel: true,
-  items: DEFAULT_ITEMS,
+  items: [...DEFAULT_ITEMS, ...LOCAL_ITEMS],
+}
+
+async function searchWebFallback(query: string): Promise<{ text: string; links: { label: string; href: string }[] } | null> {
+  try {
+    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query.slice(0, 300))}`
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 PlatformAssistant/1.0' }, cache: 'no-store' })
+    if (!res.ok) return null
+    const html = await res.text()
+    const rows: { text: string; href: string }[] = []
+    const re = /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi
+    let match: RegExpExecArray | null
+    const clean = (s: string) => s.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&#x27;|&#39;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, ' ').trim()
+    while ((match = re.exec(html)) && rows.length < 3) {
+      const href = match[1]
+      const title = clean(match[2])
+      const snippet = clean(match[3])
+      if (title && snippet && /^https?:\/\//i.test(href)) rows.push({ href, text: `${title}: ${snippet}` })
+    }
+    if (!rows.length) return null
+    return {
+      text: `لم أجد إجابة في قاعدة معرفة المنصة، فبحثت في الويب.\n\n${rows.map((r) => `• ${r.text}`).join('\n\n')}`,
+      links: rows.map((r) => ({ label: r.text.split(':')[0].slice(0, 70), href: r.href })),
+    }
+  } catch {
+    return null
+  }
 }
 
 function normalize(s: string) {
@@ -139,18 +176,27 @@ function expandTokens(msg: string): Set<string> {
 
 export async function getAssistantConfig(): Promise<AssistantConfig> {
   try {
-    const raw = await fs.readFile(FILE, 'utf8')
-    const data = JSON.parse(raw)
+    const row = await prisma.setting.findUnique({ where: { key: SETTING_KEY } })
+    const data = row?.value ? JSON.parse(row.value) : {}
     return {
       ...DEFAULT_CONFIG,
       ...data,
-      items:
-        Array.isArray(data.items) && data.items.length
-          ? data.items
-          : DEFAULT_ITEMS,
+      items: [...DEFAULT_ITEMS, ...LOCAL_ITEMS, ...(Array.isArray(data.items) ? data.items : [])]
+        .filter((item, index, all) => all.findIndex((x) => x.id === item.id) === index),
     }
   } catch {
-    return { ...DEFAULT_CONFIG, items: [...DEFAULT_ITEMS] }
+    try {
+      const raw = await fs.readFile(FILE, 'utf8')
+      const data = JSON.parse(raw)
+      return {
+        ...DEFAULT_CONFIG,
+        ...data,
+        items: [...DEFAULT_ITEMS, ...LOCAL_ITEMS, ...(Array.isArray(data.items) ? data.items : [])]
+          .filter((item, index, all) => all.findIndex((x) => x.id === item.id) === index),
+      }
+    } catch {
+      return { ...DEFAULT_CONFIG, items: [...DEFAULT_CONFIG.items] }
+    }
   }
 }
 
@@ -164,8 +210,11 @@ export async function saveAssistantConfig(
     items: patch.items ?? cur.items,
     updatedAt: new Date().toISOString(),
   }
-  await fs.mkdir(path.dirname(FILE), { recursive: true })
-  await fs.writeFile(FILE, JSON.stringify(next, null, 2), 'utf8')
+  await prisma.setting.upsert({
+    where: { key: SETTING_KEY },
+    create: { key: SETTING_KEY, value: JSON.stringify(next) },
+    update: { value: JSON.stringify(next) },
+  })
   return next
 }
 
@@ -208,13 +257,18 @@ export function scoreItem(msg: string, item: KnowledgeItem): number {
 async function polishWithSmallModel(
   userMsg: string,
   baseAnswer: string,
-  personality: string
+  personality: string,
+  history: { role: string; content: string }[] = []
 ): Promise<string | null> {
   const gemini = (process.env.GEMINI_API_KEY || '').trim()
   const openai = (process.env.OPENAI_API_KEY || '').trim()
+  const context = history.slice(-8).map((item) => `${item.role}: ${item.content}`).join('\n')
   const system = `${personality || 'مساعد منصة عربي واضح.'}
-أعد صياغة المعلومة التالية كرد محادثة قصير ومفيد للمستخدم، دون اختراع أسعار أو ميزات غير مذكورة.
-المعلومة:
+أنت مساعد لغوي حواري. أجب بالعربية الواضحة وبشكل مباشر، وحافظ على سياق المحادثة.
+لا تخترع أسعاراً أو ميزات أو حقائق غير موجودة في المادة المرجعية. إذا لم تكفِ المادة، صرّح بذلك بوضوح.
+السياق السابق:
+${context || '(لا يوجد)'}
+المادة المرجعية أو نتائج البحث:
 ${baseAnswer}`
 
   try {
@@ -227,7 +281,7 @@ ${baseAnswer}`
           contents: [
             {
               role: 'user',
-              parts: [{ text: `سؤال المستخدم: \( {userMsg}\n\n \){system}` }],
+              parts: [{ text: `سؤال المستخدم: ${userMsg}\n\n${system}` }],
             },
           ],
           generationConfig: { maxOutputTokens: 400, temperature: 0.4 },
@@ -306,12 +360,30 @@ export async function replyOpen(
     }
   }
 
+  // الأسئلة المحددة عن أشخاص أو أحداث أو معلومات متغيرة تحتاج مصدراً حديثاً.
+  // نبدأ بالمعالجة المحلية دائماً، ثم نستخدم الويب فقط عندما لا تكفيها.
+  const asksForSpecificFact = /^(من هو|من هي|ما هو|ما هي|ماذا|كيف|لماذا|متى|أين|هل|كم|who|what|how|why|when|where|is|are)\b/i.test(normalize(msg))
+  if (asksForSpecificFact && !/رصيد|خطة|اشتراك|صور|فيديو|موسيقى|دعم|حساب/.test(normalize(msg))) {
+    const web = await searchWebFallback(msg)
+    if (web) {
+      const polished = await polishWithSmallModel(msg, web.text, cfg.personality, history)
+      return { text: polished || web.text, matchedIds: [], links: web.links, engine: polished ? 'web-search+model' : 'local+web-search' }
+    }
+  }
+
   const ranked = [...cfg.items]
     .map((it) => ({ it, score: scoreItem(msg, it) }))
     .filter((x) => x.score >= 2.5)
     .sort((a, b) => b.score - a.score)
 
   if (!ranked.length) {
+    const web = await searchWebFallback(msg)
+    if (web) {
+      const polished = await polishWithSmallModel(msg, web.text, cfg.personality, history)
+      return { text: polished || web.text, matchedIds: [], links: web.links, engine: polished ? 'web-search+model' : 'local+web-search' }
+    }
+    const modelAnswer = await polishWithSmallModel(msg, cfg.fallback, cfg.personality, history)
+    if (modelAnswer) return { text: modelAnswer, matchedIds: [], links: [], engine: 'model-fallback' }
     return {
       text: cfg.fallback,
       matchedIds: [],
@@ -344,7 +416,7 @@ export async function replyOpen(
 
   // نموذج صغير/متوسط خفيف: إعادة صياغة فقط (ليس نموذجاً ضخماً)
   if (cfg.useSmallModel) {
-    const polished = await polishWithSmallModel(msg, text, cfg.personality)
+    const polished = await polishWithSmallModel(msg, text, cfg.personality, history)
     if (polished) {
       text = polished
       engine = 'knowledge+small-model'

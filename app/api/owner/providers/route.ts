@@ -41,6 +41,16 @@ const SEED: SeedProvider[] = [
   },
 
   {
+    slug: 'manus',
+    name: 'Manus Agent Media',
+    category: 'video,audio',
+    priority: 1,
+    defaultModel: 'manus-media-agent',
+    costPerUse: 100,
+    envKey: 'MANUS_API_KEY',
+  },
+
+  {
     slug: 'gemini',
     name: 'Google Gemini',
     category: 'text',
@@ -48,6 +58,15 @@ const SEED: SeedProvider[] = [
     defaultModel: 'gemini-2.0-flash',
     costPerUse: 3,
     envKey: 'GEMINI_API_KEY',
+  },
+  {
+    slug: 'openai',
+    name: 'OpenAI',
+    category: 'text',
+    priority: 5,
+    defaultModel: 'gpt-4o-mini',
+    costPerUse: 5,
+    envKey: 'OPENAI_API_KEY',
   },
   {
     slug: 'replicate',
@@ -174,10 +193,17 @@ async function testProvider(slug: string, key: string): Promise<ProviderTestResu
     
     if (slug === 'pollinations') {
       const q = encodeURIComponent('test logo')
-      const url = `https://gen.pollinations.ai/image/\( {q}?model=flux&width=512&height=512&key= \){encodeURIComponent(key)}`
+      const url = `https://gen.pollinations.ai/image/${q}?model=flux&width=512&height=512&key=${encodeURIComponent(key)}`
       const res = await fetch(url, { headers: { Authorization: `Bearer ${key}` } })
       if (res.ok) return { success: true, message: 'Pollinations متصل' }
       return { success: false, message: `Pollinations HTTP ${res.status}` }
+    }
+
+    if (slug === 'manus') {
+      const res = await fetch('https://api.manus.ai/v2/user.me', {
+        headers: { 'x-manus-api-key': key },
+      })
+      return { success: res.ok, message: res.ok ? 'Manus متصل' : `Manus فشل HTTP ${res.status}` }
     }
 
     if (slug === 'gemini') {
@@ -339,14 +365,30 @@ export async function POST(req: NextRequest) {
             },
           })
           providerId = created.id
-          await prisma.aiModel.create({
-            data: {
+          await prisma.aiModel.upsert({
+            where: { providerId_modelId: { providerId: created.id, modelId: s.defaultModel } },
+            create: {
               providerId: created.id,
               modelId: s.defaultModel,
               displayName: s.defaultModel,
+              category: s.category.split(',')[0],
               isDefault: true,
-            } as any,
+            },
+            update: { displayName: s.defaultModel, category: s.category.split(',')[0], isDefault: true },
           })
+        }
+        if (providerId) {
+          await prisma.aiModel.upsert({
+            where: { providerId_modelId: { providerId, modelId: s.defaultModel } },
+            create: {
+              providerId,
+              modelId: s.defaultModel,
+              displayName: s.defaultModel,
+              category: s.category.split(',')[0],
+              isDefault: true,
+            },
+            update: { displayName: s.defaultModel, category: s.category.split(',')[0], isDefault: true },
+          }).catch(() => undefined)
         }
         const val = envVal(s.envKey)
         if (val && providerId) {
@@ -356,7 +398,7 @@ export async function POST(req: NextRequest) {
           if (keyRow) {
             await prisma.providerKey.update({
               where: { id: keyRow.id },
-              data: { keyValue: val, isEnabled: true },
+              data: { keyValue: val, isActive: true },
             })
           } else {
             await prisma.providerKey.create({
@@ -364,7 +406,7 @@ export async function POST(req: NextRequest) {
                 providerId,
                 keyName: s.envKey,
                 keyValue: val,
-                isEnabled: true,
+                isActive: true,
               },
             })
           }
@@ -504,11 +546,11 @@ export async function POST(req: NextRequest) {
       if (existing) {
         await prisma.providerKey.update({
           where: { id: existing.id },
-          data: { keyValue, isEnabled: true },
+          data: { keyValue, isActive: true },
         })
       } else {
         await prisma.providerKey.create({
-          data: { providerId, keyName, keyValue, isEnabled: true },
+          data: { providerId, keyName, keyValue, isActive: true },
         })
       }
       await prisma.aiProvider.update({

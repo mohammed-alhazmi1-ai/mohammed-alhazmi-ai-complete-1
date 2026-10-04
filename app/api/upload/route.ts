@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       await logSecurityEvent({
         type: 'oversized',
         severity: 'medium',
-        message: `ملف أكبر من الحد: \( {file.name} ( \){file.size} بايت)`,
+        message: `ملف أكبر من الحد: ${file.name} (${file.size} بايت)`,
         ip,
         meta: { name: file.name, size: file.size },
       })
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
           : guard.mime === 'application/pdf'
             ? '.pdf'
             : '.bin')
-    const filename = `\( {Date.now()}- \){id}${ext}`
+    const filename = `${Date.now()}-${id}${ext}`
 
     const isVercel = Boolean(process.env.VERCEL)
     const uploadDir = isVercel
