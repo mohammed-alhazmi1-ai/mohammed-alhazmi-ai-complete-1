@@ -249,13 +249,18 @@ export function scoreItem(msg: string, item: KnowledgeItem): number {
 async function polishWithSmallModel(
   userMsg: string,
   baseAnswer: string,
-  personality: string
+  personality: string,
+  history: { role: string; content: string }[] = []
 ): Promise<string | null> {
   const gemini = (process.env.GEMINI_API_KEY || '').trim()
   const openai = (process.env.OPENAI_API_KEY || '').trim()
+  const context = history.slice(-8).map((item) => `${item.role}: ${item.content}`).join('\n')
   const system = `${personality || 'مساعد منصة عربي واضح.'}
-أعد صياغة المعلومة التالية كرد محادثة قصير ومفيد للمستخدم، دون اختراع أسعار أو ميزات غير مذكورة.
-المعلومة:
+أنت مساعد لغوي حواري. أجب بالعربية الواضحة وبشكل مباشر، وحافظ على سياق المحادثة.
+لا تخترع أسعاراً أو ميزات أو حقائق غير موجودة في المادة المرجعية. إذا لم تكفِ المادة، صرّح بذلك بوضوح.
+السياق السابق:
+${context || '(لا يوجد)'}
+المادة المرجعية أو نتائج البحث:
 ${baseAnswer}`
 
   try {
@@ -355,8 +360,11 @@ export async function replyOpen(
   if (!ranked.length) {
     const web = await searchWebFallback(msg)
     if (web) {
-      return { text: web.text, matchedIds: [], links: web.links, engine: 'local+web-search' }
+      const polished = await polishWithSmallModel(msg, web.text, cfg.personality, history)
+      return { text: polished || web.text, matchedIds: [], links: web.links, engine: polished ? 'web-search+model' : 'local+web-search' }
     }
+    const modelAnswer = await polishWithSmallModel(msg, cfg.fallback, cfg.personality, history)
+    if (modelAnswer) return { text: modelAnswer, matchedIds: [], links: [], engine: 'model-fallback' }
     return {
       text: cfg.fallback,
       matchedIds: [],
@@ -389,7 +397,7 @@ export async function replyOpen(
 
   // نموذج صغير/متوسط خفيف: إعادة صياغة فقط (ليس نموذجاً ضخماً)
   if (cfg.useSmallModel) {
-    const polished = await polishWithSmallModel(msg, text, cfg.personality)
+    const polished = await polishWithSmallModel(msg, text, cfg.personality, history)
     if (polished) {
       text = polished
       engine = 'knowledge+small-model'

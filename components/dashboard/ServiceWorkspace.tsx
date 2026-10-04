@@ -152,6 +152,29 @@ export default function ServiceWorkspace({ service }: { service: string }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/conversations?service=${encodeURIComponent(service)}`, { credentials: 'include', cache: 'no-store' })
+        if (!res.ok) return
+        const data = await res.json().catch(() => ({}))
+        const remote: Thread[] = (data.conversations || []).map((row: any) => ({
+          id: row.id,
+          title: row.title || 'محادثة جديدة',
+          service: row.service || service,
+          messages: (row.messages || []).map((m: any) => ({ id: m.id, role: m.role, content: m.content, imageUrl: m.imageUrl || undefined, provider: m.provider || undefined, model: m.model || undefined, cost: m.cost ?? undefined })),
+          updatedAt: new Date(row.updatedAt || Date.now()).getTime(),
+        }))
+        if (!cancelled && remote.length) {
+          setThreads(remote)
+          saveLocalThreads(service, userEmail, remote)
+        }
+      } catch { /* local history remains available */ }
+    })()
+    return () => { cancelled = true }
+  }, [service, userEmail])
+
   const costLabel = useMemo(() => meta.cost, [meta.cost])
 
   
@@ -278,6 +301,18 @@ export default function ServiceWorkspace({ service }: { service: string }) {
       }
       const list = [row, ...others].slice(0, 40)
       saveLocalThreads(service, userEmail, list)
+      void fetch('/api/conversations', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: id, service, title, messages: next }),
+      }).then(async (res) => {
+        const data = await res.json().catch(() => ({}))
+        if (res.ok && data.conversationId && data.conversationId !== id) {
+          setThreadId(data.conversationId)
+          setThreads((current) => current.map((item) => item.id === id ? { ...item, id: data.conversationId } : item))
+        }
+      }).catch(() => undefined)
       return list
     })
   }

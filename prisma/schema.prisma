@@ -31,6 +31,7 @@ model User {
   transactions        WalletTransaction[]
   aiJobs              AiJob[]
   generatedFiles      GeneratedFile[]
+  conversations       Conversation[]
 }
 
 model Profile {
@@ -44,6 +45,34 @@ model Profile {
   city      String?
   avatarUrl String?
   updatedAt DateTime @updatedAt
+}
+
+model Conversation {
+  id        String               @id @default(uuid())
+  userId    String
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service   String
+  title     String               @default("محادثة جديدة")
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  messages  ConversationMessage[]
+
+  @@index([userId, service, updatedAt])
+}
+
+model ConversationMessage {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String
+  content        String
+  imageUrl       String?
+  provider       String?
+  model          String?
+  cost           Int?
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
 }
 
 model Plan {
@@ -271,4 +300,3 @@ model Payment {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
-
