@@ -13,12 +13,12 @@ export default function BotPage() {
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: 'assistant',
-      content: 'مرحباً، أنا مساعد المنصة. اكتب سؤالك أو ارفع مرفقاً.',
+      content: 'مرحباً، أنا ريناس. اسأليني عن أي موضوع أو ارفعي مرفقاً، وسأجيب محلياً أو أبحث في الويب عند الحاجة.',
     },
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [name] = useState('مساعد المنصة')
+  const [name] = useState('ريناس')
   const [attachName, setAttachName] = useState('')
   const [attachUrl, setAttachUrl] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
@@ -79,7 +79,7 @@ export default function BotPage() {
       <header className="border-b border-slate-200 px-4 py-3 flex justify-between bg-white">
         <div>
           <h1 className="font-bold">{name}</h1>
-          <p className="text-xs text-slate-500">ردود من معرفة المنصة</p>
+            <p className="text-xs text-slate-500">مساعدة محلية متعددة المجالات مع بحث تلقائي في الويب</p>
         </div>
       </header>
 

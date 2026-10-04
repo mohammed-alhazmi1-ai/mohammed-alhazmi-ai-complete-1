@@ -100,16 +100,25 @@ const DEFAULT_ITEMS: KnowledgeItem[] = [
   },
 ]
 
+const LOCAL_ITEMS: KnowledgeItem[] = [
+  { id: 'science-local', title: 'العلوم', keywords: ['علوم', 'علم', 'فيزياء', 'كيمياء', 'احياء', 'فضاء', 'رياضيات'], answer: 'أستطيع شرح المفاهيم العلمية خطوة بخطوة وبأسلوب مبسّط، مع التفريق بين الحقيقة العلمية والفرضية. للسؤال عن نتيجة حديثة أو اكتشاف جديد سأبحث في الويب وأرفق المصادر.', enabled: true, priority: 5 },
+  { id: 'technology-local', title: 'التكنولوجيا', keywords: ['تقنية', 'تكنولوجيا', 'برمجة', 'ذكاء اصطناعي', 'حاسوب', 'جوال', 'امن سيبراني'], answer: 'أساعدك في فهم التقنيات والبرمجة والذكاء الاصطناعي والأمن الرقمي، ويمكنني تفكيك المشكلة إلى خطوات عملية وأمثلة. المعلومات المتغيرة مثل الإصدارات والأسعار أتحقق منها عبر الويب.', enabled: true, priority: 5 },
+  { id: 'literature-local', title: 'الأدب واللغة', keywords: ['ادب', 'شعر', 'رواية', 'لغة', 'نحو', 'كتابة', 'ترجمة'], answer: 'يمكنني مناقشة الأدب واللغة، تحليل نص أو قصيدة، تحسين الصياغة، وتقديم أفكار للكتابة مع احترام حقوق المؤلف وعدم اختلاق اقتباسات.', enabled: true, priority: 5 },
+  { id: 'sports-local', title: 'الرياضة', keywords: ['رياضة', 'كرة', 'دوري', 'لاعب', 'مباراة', 'تمرين'], answer: 'أستطيع شرح قواعد الرياضات وتقديم معلومات تدريبية عامة. نتائج المباريات والانتقالات والأخبار الرياضية تتغير، لذلك أبحث عنها في الويب عند السؤال عنها.', enabled: true, priority: 5 },
+  { id: 'health-local', title: 'الصحة', keywords: ['صحة', 'مرض', 'اعراض', 'دواء', 'غذاء', 'طبي', 'طبيب'], answer: 'أقدم معلومات صحية عامة وتثقيفية، لكنني لا أشخّص ولا أستبدل الطبيب. في الأعراض الشديدة أو الطارئة تواصل فوراً مع الطوارئ أو طبيب مؤهل، وسأذكر المصادر عند البحث.', enabled: true, priority: 5 },
+  { id: 'daily-local', title: 'الدردشة اليومية', keywords: ['كيف حالك', 'صباح', 'مساء', 'شكرا', 'نصيحة', 'فضفضة', 'دردشة'], answer: 'أنا ريناس، مساعدة ودودة للحوار والتفكير وتنظيم الأفكار. تحدث معي بحرية، وسأحافظ على سياق المحادثة وأجيب بأدب ووضوح.', enabled: true, priority: 5 },
+]
+
 const DEFAULT_CONFIG: AssistantConfig = {
-  name: 'مساعد منصة محمد الحزمي',
+  name: 'ريناس',
   welcome:
-    'مرحباً، أنا مساعد المنصة. اسأل بحرية عن الخدمات أو الرصيد أو الدفع — بلا حد لعدد الرسائل. يمكنني أيضاً إظهار صور أو فيديو إن أضافها المالك للمعرفة.',
+    'مرحباً، أنا ريناس. أساعدك في العلوم والتقنية والأدب والرياضة والصحة والدردشة اليومية، وأبحث في الويب تلقائياً عندما تحتاج الإجابة إلى معلومات غير موجودة لدي.',
   fallback:
-    'لم أجد تطابقاً قوياً في معرفة المنصة. أعد صياغة السؤال أو اذكر اسم الخدمة. المالك يضيف مواضيع جديدة من لوحة «مساعد المنصة».',
-  personality: 'عربي واضح، مختصر، عملي، يوجّه المستخدم لخطوات داخل المنصة.',
+    'لم أجد إجابة موثوقة في معرفتي المحلية، ولم تتوفر نتيجة بحث كافية الآن. أعد صياغة السؤال أو اطلب مني البحث في الويب مرة أخرى.',
+  personality: 'أنا ريناس: مساعدة عربية مثقفة، لبقة، دقيقة، ودودة. أشرح ببساطة، أذكر حدود اليقين، لا أختلق المعلومات، وأستخدم البحث في الويب للمعلومات الحديثة أو غير المؤكدة.',
   enabled: true,
-  useSmallModel: false,
-  items: DEFAULT_ITEMS,
+  useSmallModel: true,
+  items: [...DEFAULT_ITEMS, ...LOCAL_ITEMS],
 }
 
 async function searchWebFallback(query: string): Promise<{ text: string; links: { label: string; href: string }[] } | null> {
@@ -172,10 +181,8 @@ export async function getAssistantConfig(): Promise<AssistantConfig> {
     return {
       ...DEFAULT_CONFIG,
       ...data,
-      items:
-        Array.isArray(data.items) && data.items.length
-          ? data.items
-          : DEFAULT_ITEMS,
+      items: [...DEFAULT_ITEMS, ...LOCAL_ITEMS, ...(Array.isArray(data.items) ? data.items : [])]
+        .filter((item, index, all) => all.findIndex((x) => x.id === item.id) === index),
     }
   } catch {
     try {
@@ -184,10 +191,11 @@ export async function getAssistantConfig(): Promise<AssistantConfig> {
       return {
         ...DEFAULT_CONFIG,
         ...data,
-        items: Array.isArray(data.items) && data.items.length ? data.items : DEFAULT_ITEMS,
+        items: [...DEFAULT_ITEMS, ...LOCAL_ITEMS, ...(Array.isArray(data.items) ? data.items : [])]
+          .filter((item, index, all) => all.findIndex((x) => x.id === item.id) === index),
       }
     } catch {
-      return { ...DEFAULT_CONFIG, items: [...DEFAULT_ITEMS] }
+      return { ...DEFAULT_CONFIG, items: [...DEFAULT_CONFIG.items] }
     }
   }
 }
@@ -349,6 +357,17 @@ export async function replyOpen(
       matchedIds: [],
       links: [],
       engine: 'greeting',
+    }
+  }
+
+  // الأسئلة المحددة عن أشخاص أو أحداث أو معلومات متغيرة تحتاج مصدراً حديثاً.
+  // نبدأ بالمعالجة المحلية دائماً، ثم نستخدم الويب فقط عندما لا تكفيها.
+  const asksForSpecificFact = /^(من هو|من هي|ما هو|ما هي|ماذا|كيف|لماذا|متى|أين|هل|كم|who|what|how|why|when|where|is|are)\b/i.test(normalize(msg))
+  if (asksForSpecificFact && !/رصيد|خطة|اشتراك|صور|فيديو|موسيقى|دعم|حساب/.test(normalize(msg))) {
+    const web = await searchWebFallback(msg)
+    if (web) {
+      const polished = await polishWithSmallModel(msg, web.text, cfg.personality, history)
+      return { text: polished || web.text, matchedIds: [], links: web.links, engine: polished ? 'web-search+model' : 'local+web-search' }
     }
   }
 

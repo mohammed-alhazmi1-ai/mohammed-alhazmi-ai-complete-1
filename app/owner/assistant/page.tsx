@@ -53,8 +53,8 @@ export default function OwnerAssistantPage() {
     <div className="mx-auto max-w-2xl px-3 py-6 pb-24 text-slate-100" dir="rtl">
       <div className="flex justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold">مساعد المنصة</h1>
-          <p className="text-xs text-slate-400">بحث أدق · صور/فيديو · نموذج صغير اختياري</p>
+          <h1 className="text-xl font-bold">ريناس — المساعدة الذكية</h1>
+          <p className="text-xs text-slate-400">محرك محلي متعدد المجالات · بحث تلقائي في الويب · ذاكرة محادثة</p>
         </div>
         <Link href="/owner" className="text-xs text-slate-400">← رجوع</Link>
       </div>
@@ -70,7 +70,7 @@ export default function OwnerAssistantPage() {
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={!!cfg.useSmallModel} onChange={(e) => setCfg({ ...cfg, useSmallModel: e.target.checked })} />
-          إعادة صياغة بنموذج صغير (Gemini Flash / GPT-4o-mini عند وجود المفتاح)
+          تحسين الصياغة بنموذج خارجي اختياري (لا يؤثر على عمل ريناس المحلي)
         </label>
         <label className="block text-sm">الاسم
           <input className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm" value={cfg.name} onChange={(e) => setCfg({ ...cfg, name: e.target.value })} />
