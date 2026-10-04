@@ -1,7 +1,5 @@
 'use client'
 
-import { getSupabase } from '@/lib/auth/client'
-
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 
@@ -114,6 +112,7 @@ export default function ServiceWorkspace({ service }: { service: string }) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const pendingJobsRef = useRef(new Set<string>())
 
   useEffect(() => {
     ;(async () => {
@@ -177,6 +176,38 @@ export default function ServiceWorkspace({ service }: { service: string }) {
       a.rel = 'noopener'
       a.click()
     } catch { /* */ }
+  }
+
+  async function watchPendingJob(jobId: string) {
+    if (!jobId || pendingJobsRef.current.has(jobId)) return
+    pendingJobsRef.current.add(jobId)
+    try {
+      for (let attempt = 0; attempt < 36; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 5000))
+        const res = await fetch('/api/jobs', { credentials: 'include', cache: 'no-store' })
+        if (!res.ok) continue
+        const data = await res.json().catch(() => ({}))
+        const job = (data.jobs || []).find((item: any) => item.id === jobId)
+        if (!job || ['pending', 'processing'].includes(String(job.status).toLowerCase())) continue
+        const failed = String(job.status).toLowerCase() === 'failed'
+        setMessages((current) => {
+          if (current.some((m) => m.id === `job-result-${jobId}`)) return current
+          return [...current, {
+            id: `job-result-${jobId}`,
+            role: 'assistant' as const,
+            content: failed ? (job.errorMsg || 'فشلت مهمة إنتاج الوسائط. تحقق من إعدادات Manus ثم أعد المحاولة.') : (job.result || 'اكتملت المهمة بنجاح.'),
+            imageUrl: failed ? undefined : (job.resultUrl || undefined),
+            provider: job.provider,
+            model: job.model,
+            cost: job.creditsUsed,
+          }]
+        })
+        return
+      }
+      setError('لم تصل نتيجة Manus خلال 3 دقائق. يمكنك متابعة الحالة من سجل الطلبات.')
+    } finally {
+      pendingJobsRef.current.delete(jobId)
+    }
   }
 
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -270,24 +301,22 @@ export default function ServiceWorkspace({ service }: { service: string }) {
         .map((m) => (m.role === 'user' ? 'المستخدم: ' : 'المساعد: ') + m.content)
         .join('\n')
       const fullPrompt =
-        history.length > prompt.length + 10
+        meta.type === 'chat' && history.length > prompt.length + 10
           ? `المحادثة السابقة:\n${history}\n\nالرد على آخر رسالة للمستخدم فقط بشكل مفيد.`
           : prompt
 
-      let accessToken = ''
-      let userEmail = ''
+      let requestEmail = userEmail
       try {
-        const sb = getSupabase()
-        const { data: { session } } = await sb.auth.getSession()
-        accessToken = session?.access_token || ''
-        userEmail = session?.user?.email || ''
+        const sessionRes = await fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
+        const sessionData = await sessionRes.json().catch(() => ({}))
+        requestEmail = sessionData.user?.email || requestEmail
+        if (requestEmail) setUserEmail(requestEmail)
       } catch { /* */ }
 
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -295,7 +324,7 @@ export default function ServiceWorkspace({ service }: { service: string }) {
           type: meta.type,
           provider: provider === 'auto' ? undefined : provider,
           service,
-          email: userEmail || undefined,
+          email: requestEmail || undefined,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -343,6 +372,7 @@ export default function ServiceWorkspace({ service }: { service: string }) {
         persistMessages(next)
         return next
       })
+      if (data.pending && data.jobId) void watchPendingJob(String(data.jobId))
     } catch (e: any) {
       setError(e?.message || 'خطأ شبكة')
     } finally {

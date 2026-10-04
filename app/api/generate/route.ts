@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generateRealtime, type GenType } from '@/lib/ai/realtime'
 import { deductCredits, ensureUserByEmail, totalCredits } from '@/lib/credits'
 import { prisma } from '@/lib/prisma'
+import { getSessionUser } from '@/lib/auth/session'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -37,7 +38,10 @@ function pickProvider(body: any): string {
 
 /** استخراج المستخدم من الجلسة / البريد / userId */
 async function resolveUserId(req: NextRequest, body: any): Promise<string | null> {
-  // 1) صريح من الواجهة
+  const sessionUser = await getSessionUser().catch(() => null)
+  if (sessionUser?.id) return sessionUser.id
+
+  // fallback للتوافق مع الطلبات القديمة
   if (body.userId) return String(body.userId)
   if (body.email) {
     try {
@@ -156,7 +160,9 @@ export async function POST(req: NextRequest) {
           data: {
             status: result.pending ? 'processing' : result.ok ? 'completed' : 'failed',
             provider: result.provider,
-            result: (result.text || result.error || result.taskId || '').slice(0, 5000),
+            result: (result.pending
+              ? `TASK_ID:${result.taskId || ''}\n${result.text || 'مهمة قيد التنفيذ'}`
+              : (result.text || result.error || result.taskId || '')).slice(0, 5000),
             resultUrl: result.imageUrl || null,
             creditsUsed: result.ok && !result.pending ? cost : 0,
           } as any,

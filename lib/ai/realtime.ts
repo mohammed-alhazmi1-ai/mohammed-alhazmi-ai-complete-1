@@ -52,6 +52,7 @@ function normProvider(p?: string): 'openai' | 'gemini' | 'huggingface' | 'replic
   if (x.includes('gemini') || x.includes('google')) return 'gemini'
   if (x.includes('hugging') || x === 'hf') return 'huggingface'
   if (x.includes('replicate')) return 'replicate'
+  if (x.includes('pollination')) return 'pollinations'
   if (x.includes('manus')) return 'manus'
   return 'auto'
 }
@@ -577,13 +578,12 @@ async function runOne(
       return createManusMediaTask('video', prompt, process.env.MANUS_WEBHOOK_URL)
     }
     if (provider === 'replicate') return replicateVideo(prompt)
-    // الآخرون: سيناريو نصي
-    const g = await (provider === 'huggingface' ? hfChat : geminiChat)(
-      `اكتب سيناريو فيديو قصير + لقطات + English prompt لمولد فيديو:\n${prompt}`
-    )
-    return g.ok
-      ? { ...g, text: "تعذر فيديو مباشر من " + provider + ".\n\n" + (g.text || "") }
-      : g
+    return {
+      ok: false,
+      provider,
+      model: '-',
+      error: `مزود الفيديو غير مدعوم: ${provider}. استخدم Manus لإنتاج ملف فيديو فعلي.`,
+    }
   }
   if (type === 'music') {
     if (provider === 'manus') {
